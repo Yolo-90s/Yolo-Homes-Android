@@ -27,6 +27,7 @@ object Routes {
     const val ADD_READING = "water/add"
     const val READING_HISTORY = "water/history"
     const val FLAT_CONSUMPTION = "water/consumption"
+    const val WATER_REPORT = "water/report"
     const val WATER_BILL = "water/bill/{readingId}"
     fun waterBill(id: String) = "water/bill/$id"
 

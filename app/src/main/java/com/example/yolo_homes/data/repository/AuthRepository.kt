@@ -84,13 +84,18 @@ class AuthRepository @Inject constructor(
     private suspend fun resolveRoleAndFlat(email: String?, phone: String?): RoleResolution {
         if (email == null && phone == null) return RoleResolution(Role.UNKNOWN, null)
         val flats = db.collection(FirestoreCollections.MASTER_FLATS).get().await().documents
-        val match = flats.firstOrNull { doc ->
+        val matches = flats.filter { doc ->
             val docEmail = doc.get("email")?.toString()
             val ownerPhone = doc.get("ownerPhone")?.toString()
             val tenantPhone = doc.get("tenantPhone")?.toString()
             (email != null && docEmail != null && docEmail.equals(email, ignoreCase = true)) ||
                 (phone != null && (phone == ownerPhone || phone == tenantPhone))
-        } ?: return RoleResolution(Role.UNKNOWN, null)
+        }
+        if (matches.isEmpty()) return RoleResolution(Role.UNKNOWN, null)
+
+        // A user can be linked to several flats (e.g. owner of their own + admin elsewhere).
+        // Grant the highest role so an admin assignment is never shadowed by an owner/tenant row.
+        val match = matches.maxByOrNull { Role.from(it.get("role")?.toString()).priority }!!
 
         val role = Role.from(match.get("role")?.toString())
         val flatNo = match.get("flatNo")?.toString() ?: match.id

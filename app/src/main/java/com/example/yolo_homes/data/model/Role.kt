@@ -20,6 +20,16 @@ enum class Role {
     /** A resident whose data should be scoped to their own flat. */
     val isResident: Boolean get() = this == OWNER || this == TENANT
 
+    /** Higher wins when a user is linked to several flats with different roles. */
+    val priority: Int
+        get() = when (this) {
+            DEVELOPER -> 4
+            ADMIN -> 3
+            OWNER -> 2
+            TENANT -> 1
+            UNKNOWN -> 0
+        }
+
     /** Label shown in the UI. */
     val label: String
         get() = when (this) {

@@ -18,6 +18,7 @@ import com.example.yolo_homes.feature.water.AddReadingScreen
 import com.example.yolo_homes.feature.water.FlatConsumptionScreen
 import com.example.yolo_homes.feature.water.WaterBillScreen
 import com.example.yolo_homes.feature.water.WaterHistoryScreen
+import com.example.yolo_homes.feature.water.WaterReportScreen
 
 /**
  * Signed-in navigation. The start is a tabbed home (Maintenance | Water) with no bottom bar;
@@ -44,7 +45,8 @@ fun YoloNavGraph(
                 onReceiptClick = { navController.navigate(Routes.receiptDetail(it)) },
                 onWaterHistory = { navController.navigate(Routes.READING_HISTORY) },
                 onReadingClick = { navController.navigate(Routes.waterBill(it)) },
-                onViewConsumption = { navController.navigate(Routes.FLAT_CONSUMPTION) }
+                onViewConsumption = { navController.navigate(Routes.FLAT_CONSUMPTION) },
+                onOpenWaterReport = { navController.navigate(Routes.WATER_REPORT) }
             )
         }
 
@@ -110,7 +112,13 @@ fun YoloNavGraph(
             )
         }
         composable(Routes.FLAT_CONSUMPTION) {
-            FlatConsumptionScreen(onBack = { navController.popBackStack() })
+            FlatConsumptionScreen(
+                onBack = { navController.popBackStack() },
+                onOpenReport = { navController.navigate(Routes.WATER_REPORT) }
+            )
+        }
+        composable(Routes.WATER_REPORT) {
+            WaterReportScreen(onBack = { navController.popBackStack() })
         }
     }
 }

@@ -29,7 +29,12 @@ data class FlatConsumption(
     val flat: Flat,
     val liters: Double,
     val amount: Double,
-    val hasReading: Boolean
+    val hasReading: Boolean,
+    val previousReading: Double = 0.0,
+    val currentReading: Double = 0.0,
+    val excessLiters: Double = 0.0,
+    val date: Long = 0L,
+    val edited: Boolean = false
 )
 
 data class ConsumerStat(val flat: Flat, val liters: Double)
@@ -73,24 +78,58 @@ class WaterViewModel @Inject constructor(
 
     private val selectedPeriod = MutableStateFlow(Formatters.periodKey())
 
+    // The complete building registry lives in `masterFlats` (kept up to date via Manage Residents),
+    // while the operational `flats` collection is what older readings reference by auto-id. We need
+    // both: the union for "every flat", and the auto-id↔flatNo cross-reference so existing readings
+    // still resolve to a flat. combine() maxes out at 5 flows, so fold the two flat sources first.
+    private val flatsFlow = combine(
+        flatRepository.observeMasterFlats(),
+        flatRepository.observeFlats()
+    ) { master, ops -> master to ops }
+
     val uiState: StateFlow<WaterUiState> = combine(
         readingRepository.observeReadings(limit = 500),
-        flatRepository.observeFlats(),
+        flatsFlow,
         settingsRepository.observeSettings(),
         selectedPeriod,
         sessionManager.session
-    ) { readingsAll, flatsAll, settings, period, session ->
-        // Residents (owner/tenant) only see their own flat.
-        val resident = session != null && session.isResident && session.flatId != null
-        val readings = if (resident) readingsAll.filter { it.flatId == session!!.flatId } else readingsAll
-        val flats = if (resident) flatsAll.filter { it.id == session!!.flatId } else flatsAll
-        val flatsById = Flat.lookup(flats)
+    ) { readingsAll, flatsPair, settings, period, session ->
+        val (masterFlats, opsFlats) = flatsPair
+
+        // A reading's flatId is usually the operational `flats` doc auto-id; map it back to a flatNo.
+        val autoIdToNo = opsFlats
+            .filter { it.id.isNotBlank() && it.flatNo.isNotBlank() }
+            .associate { it.id to it.flatNo }
+        fun canonicalNo(flatId: String): String = autoIdToNo[flatId] ?: flatId
+
+        // Every flat known in either collection, keyed by flatNo. masterFlats wins (it carries the
+        // maintained owner/tenant/block details); any flat present only in `flats` is still included.
+        val byNo = LinkedHashMap<String, Flat>()
+        opsFlats.forEach { if (it.flatNo.isNotBlank()) byNo[it.flatNo] = it }
+        masterFlats.forEach { if (it.flatNo.isNotBlank()) byNo[it.flatNo] = it }
+        val allFlats = byNo.values.sortedBy { it.flatNo }
+
+        // Residents (owner/tenant) only see their own flat — resolve their flatNo from their flats-doc id.
+        val residentNo = session?.flatId?.let { canonicalNo(it) }
+        val resident = session != null && session.isResident && residentNo != null
+        val flats = if (resident) allFlats.filter { it.flatNo == residentNo } else allFlats
+        val readings = if (resident) readingsAll.filter { canonicalNo(it.flatId) == residentNo } else readingsAll
+
+        val flatByNo = flats.associateBy { it.flatNo }
+        // Lookup keyed by flatNo, doc id AND the operational auto-id, so any reading resolves to its flat.
+        val flatsById = HashMap<String, Flat>()
+        flats.forEach { f ->
+            if (f.flatNo.isNotBlank()) flatsById[f.flatNo] = f
+            if (f.id.isNotBlank()) flatsById[f.id] = f
+        }
+        autoIdToNo.forEach { (autoId, no) -> flatByNo[no]?.let { flatsById[autoId] = it } }
+
         val currentMonth = Formatters.periodKey()
         val currentReadings = readings.filter { Formatters.periodKey(it.date) == currentMonth }
 
-        val perFlatCurrent = currentReadings.groupBy { it.flatId }
-            .mapNotNull { (flatId, list) ->
-                flatsById[flatId]?.let { ConsumerStat(it, list.sumOf { r -> r.usageLiters }) }
+        val perFlatCurrent = currentReadings.groupBy { canonicalNo(it.flatId) }
+            .mapNotNull { (no, list) ->
+                flatByNo[no]?.let { ConsumerStat(it, list.sumOf { r -> r.usageLiters }) }
             }
             .sortedByDescending { it.liters }
 
@@ -104,15 +143,20 @@ class WaterViewModel @Inject constructor(
 
         // Flat-wise consumption for the *selected* month (all flats, even with no reading).
         val selectedReadings = readings.filter { Formatters.periodKey(it.date) == period }
-        val byFlat = selectedReadings.groupBy { it.flatId }
+        val byFlatNo = selectedReadings.groupBy { canonicalNo(it.flatId) }
         val consumption = flats.map { flat ->
-            // A reading's flatId may be the doc id OR the flatNo — check both.
-            val list = byFlat[flat.id] ?: byFlat[flat.flatNo] ?: emptyList()
+            val list = (byFlatNo[flat.flatNo] ?: byFlatNo[flat.id] ?: emptyList()).sortedBy { it.date }
             FlatConsumption(
                 flat = flat,
                 liters = list.sumOf { it.usageLiters },
                 amount = list.sumOf { it.amount },
-                hasReading = list.isNotEmpty()
+                hasReading = list.isNotEmpty(),
+                // For a month with multiple readings: open with the earliest, close with the latest.
+                previousReading = list.firstOrNull()?.previousReading ?: 0.0,
+                currentReading = list.lastOrNull()?.currentReading ?: 0.0,
+                excessLiters = list.sumOf { it.excessLiters },
+                date = list.lastOrNull()?.date ?: 0L,
+                edited = list.any { it.edited }
             )
         }.sortedByDescending { it.liters }
 

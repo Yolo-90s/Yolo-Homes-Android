@@ -49,7 +49,8 @@ fun HomeTabsScreen(
     onReceiptClick: (String) -> Unit,
     onWaterHistory: () -> Unit,
     onReadingClick: (String) -> Unit,
-    onViewConsumption: () -> Unit
+    onViewConsumption: () -> Unit,
+    onOpenWaterReport: () -> Unit
 ) {
     val tabs = listOf("Maintenance", "Water")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -113,7 +114,8 @@ fun HomeTabsScreen(
                         else -> WaterDashboardScreen(
                             onViewHistory = onWaterHistory,
                             onReadingClick = onReadingClick,
-                            onViewConsumption = onViewConsumption
+                            onViewConsumption = onViewConsumption,
+                            onOpenReport = onOpenWaterReport
                         )
                     }
                 }

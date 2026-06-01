@@ -5,7 +5,11 @@
       "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb devices; & $adb install -r \"app\\\\build\\\\outputs\\\\apk\\\\debug\\\\app-debug.apk\")",
       "PowerShell(firebase login:list 2>&1)",
       "PowerShell(firebase projects:list 2>&1)",
-      "PowerShell(\"---PROJECTS---\")"
+      "PowerShell(\"---PROJECTS---\")",
+      "PowerShell(.\\\\gradlew.bat :app:compileDebugKotlin -q --console=plain 2>&1)",
+      "Read(//d/NAG/Yolof4ck/Yolo-Homes-Webapp/**)",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

@@ -27,6 +27,7 @@ import com.example.yolo_homes.feature.water.components.WaterReadingCard
 import com.example.yolo_homes.ui.components.BarChart
 import com.example.yolo_homes.ui.components.EmptyState
 import com.example.yolo_homes.ui.components.LineChart
+import com.example.yolo_homes.ui.components.PrimaryButton
 import com.example.yolo_homes.ui.components.SectionHeader
 import com.example.yolo_homes.ui.components.StatCard
 import com.example.yolo_homes.ui.components.SurfaceCard
@@ -39,6 +40,7 @@ fun WaterDashboardScreen(
     onViewHistory: () -> Unit,
     onReadingClick: (String) -> Unit,
     onViewConsumption: () -> Unit,
+    onOpenReport: () -> Unit = {},
     viewModel: WaterViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -48,6 +50,13 @@ fun WaterDashboardScreen(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            PrimaryButton(
+                text = "All Flats Report  •  Table & PDF",
+                onClick = onOpenReport,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatCard("Consumption", state.totalConsumption, Icons.Rounded.Bolt, ChartSky, Modifier.weight(1f)) {
