@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Yolo-Home's security model:
+//  - Anyone signed in can READ apartment data.
+//  - Only admins can WRITE settings, readings and maintenance receipts.
+//  - A user is an admin if a masterFlats doc with role == "admin" is linked to
+//    their account (by email or owner/tenant phone).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Admin via a custom auth claim (preferred) or a role field on the user's
+    // own profile doc. NOTE: Firestore rules cannot query masterFlats, so mirror
+    // the admin flag onto the user doc (or set a custom claim) when provisioning.
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'developer']
+        )
+      );
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      // A user may create/maintain only their own profile.
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /appSettings/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /masterFlats/{flatId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Operational flats collection referenced by receipts/readings.
+    match /flats/{flatId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /maintenanceSettings/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /maintenanceReceipts/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /readings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
