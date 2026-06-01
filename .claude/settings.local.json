@@ -9,7 +9,14 @@
       "PowerShell(.\\\\gradlew.bat :app:compileDebugKotlin -q --console=plain 2>&1)",
       "Read(//d/NAG/Yolof4ck/Yolo-Homes-Webapp/**)",
       "Bash(Get-ChildItem -Force)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; if \\(Test-Path node_modules\\) { \"node_modules: present\" } else { \"node_modules: MISSING\" }; \\(Get-Command npm -ErrorAction SilentlyContinue\\).Source; node -v; npm -v)",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; $env:CI=\"false\"; npm run build 2>&1 | Select-Object -Last 35)",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; $env:CI=\"false\"; npm run build 2>&1 | Select-String -Pattern \"Compiled successfully|Failed to compile|Error|warning\" | Select-Object -First 20)",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; $env:CI=\"false\"; npm run build 2>&1 | Select-String -Pattern \"Line |no-unused|react-hooks|WaterReport\" -Context 0,1 | Select-Object -First 30)",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; $env:CI=\"false\"; npm run build 2>&1 | Select-String -Pattern \"Compiled successfully|Compiled with warnings|Failed to compile|WaterReport|no-control\" | Select-Object -First 20)",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; Get-ChildItem -Force -File | Select-Object Name | Format-Table -HideTableHeaders; \"--- firebase CLI ---\"; \\(Get-Command firebase -ErrorAction SilentlyContinue\\).Source; \"--- serve pkg ---\"; if \\(Test-Path node_modules/serve\\) {\"serve present\"} else {\"serve absent\"})",
+      "PowerShell(cd 'D:\\\\NAG\\\\Yolof4ck\\\\Yolo-Homes-Webapp'; $env:CI=\"false\"; npm run build 2>&1 | Select-String -Pattern \"Compiled successfully|Failed to compile\"; \"--- auth ---\"; firebase login:list 2>&1 | Select-Object -First 5)"
     ]
   }
 }
