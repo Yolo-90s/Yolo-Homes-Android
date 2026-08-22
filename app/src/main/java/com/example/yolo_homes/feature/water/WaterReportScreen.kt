@@ -73,7 +73,7 @@ enum class WaterReportColumn(val header: String, val width: Dp) {
         CURRENT -> if (fc.hasReading) "%,.0f".format(fc.currentReading) else "—"
         USAGE -> if (fc.hasReading) "%,.0f".format(fc.liters) else "—"
         BILLABLE -> if (fc.hasReading) "%,.0f".format(fc.excessLiters) else "—"
-        RATE -> Formatters.currencyPrecise(settings.ratePerExcessLiter, currency)
+        RATE -> Formatters.currencyPrecise(settings.billingRateInfo().rate, currency)
         AMOUNT -> if (fc.hasReading) Formatters.currency(fc.amount, currency) else "—"
         DATE -> if (fc.hasReading) Formatters.shortDate(fc.date) else "—"
         STATUS -> when {

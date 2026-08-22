@@ -8,38 +8,55 @@ import kotlin.math.round
 /**
  * Maps to `appSettings/main`. Drives water billing math and global preferences.
  *
- * [freeLiters] is the **absolute exclude baseline** (default 200 L): water meters ship
- * showing ~100+ L, so any meter reading at or below this value is excluded from billing —
- * charging only counts cumulative liters above it. There is no separate per-month free
- * allowance; every liter above the baseline is billed at [ratePerExcessLiter].
+ * Two billing methods, chosen via [billingMethod]:
+ * - `"flat"`: [freeLiters] is an **absolute exclude baseline** (default 200 L): water meters
+ *   ship showing ~100+ L, so any meter reading at or below this value is excluded from
+ *   billing. There is no per-month free allowance — the baseline only matters on a flat's
+ *   first-ever reading. Every liter above it is billed at [ratePerExcessLiter].
+ * - `"tiered"`: a free allowance per billing period ([freeLitersMonthly]); only usage above
+ *   it is billed, at [tieredRatePerLiter].
  */
 data class AppSettings(
     val apartmentName: String = "Sri Manjunatha Residency",
     val address: String = "",
     val currency: String = "₹",
+    val billingMethod: String = "flat",
     val freeLiters: Double = 200.0,
     val ratePerExcessLiter: Double = 0.0,
+    val freeLitersMonthly: Double = 10000.0,
+    val tieredRatePerLiter: Double = 0.02,
     val readingFrequency: String = "Monthly",
-    val decimalPrecision: Int = 2,
-    val roundingRule: String = "nearest",
+    val decimalPrecision: Int = 0,
+    val roundingRule: String = "none",
     val sendBillMessage: Boolean = false,
     val sendReminder: Boolean = false,
     val unit: String = "Liters",
     val waterSource: String = ""
 ) {
     /**
-     * Computes usage / billable / amount for a meter reading.
+     * Computes usage / billable / amount for a meter reading, per [billingMethod].
      *
      * - `usage`   = raw consumption this period (current − previous).
-     * - `excess`  = billable liters = the portion above the absolute [freeLiters] baseline,
-     *               i.e. max(current, baseline) − max(previous, baseline).
-     * - `amount`  = billable × [ratePerExcessLiter], rounded per [roundingRule].
+     * - `excess`  = billable liters — see [billingMethod] doc above for how this differs
+     *               between "flat" and "tiered".
+     * - `amount`  = billable × the active rate, rounded per [roundingRule].
      */
     fun computeBill(previous: Double, current: Double): WaterBill {
-        val baseline = freeLiters
+        val tiered = billingMethod == "tiered"
         val usage = (current - previous).coerceAtLeast(0.0)
-        val billable = (max(current, baseline) - max(previous, baseline)).coerceAtLeast(0.0)
-        val raw = billable * ratePerExcessLiter
+
+        val billable: Double
+        val rate: Double
+        if (tiered) {
+            rate = tieredRatePerLiter
+            billable = (usage - freeLitersMonthly).coerceAtLeast(0.0)
+        } else {
+            val baseline = freeLiters
+            rate = ratePerExcessLiter
+            billable = (max(current, baseline) - max(previous, baseline)).coerceAtLeast(0.0)
+        }
+
+        val raw = billable * rate
         val amount = when (roundingRule.lowercase()) {
             "up", "ceil" -> ceil(raw)
             "down", "floor" -> floor(raw)
@@ -48,10 +65,28 @@ data class AppSettings(
         }
         return WaterBill(usage = usage, excess = billable, amount = amount)
     }
+
+    /** Resolves the rate/limit fields that actually apply under the active billing method. */
+    fun billingRateInfo(): BillingRateInfo {
+        val tiered = billingMethod == "tiered"
+        return BillingRateInfo(
+            tiered = tiered,
+            rate = if (tiered) tieredRatePerLiter else ratePerExcessLiter,
+            limit = if (tiered) freeLitersMonthly else freeLiters,
+            limitLabel = if (tiered) "Free Allowance (Monthly)" else "Exclude Limit (≤)"
+        )
+    }
 }
 
 data class WaterBill(
     val usage: Double,
     val excess: Double,
     val amount: Double
+)
+
+data class BillingRateInfo(
+    val tiered: Boolean,
+    val rate: Double,
+    val limit: Double,
+    val limitLabel: String
 )

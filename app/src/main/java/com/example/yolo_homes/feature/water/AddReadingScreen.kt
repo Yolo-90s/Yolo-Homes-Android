@@ -117,10 +117,11 @@ fun AddReadingScreen(
                     Column {
                         Text("Live Calculation", style = MaterialTheme.typography.titleSmall)
                         androidx.compose.foundation.layout.Spacer(Modifier.padding(4.dp))
+                        val rateInfo = state.settings.billingRateInfo()
                         DetailRow("Usage", Formatters.liters(draft.bill.usage))
-                        DetailRow("Exclude Limit (≤)", Formatters.liters(state.settings.freeLiters))
+                        DetailRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit))
                         DetailRow("Billable Usage", Formatters.liters(draft.bill.excess))
-                        DetailRow("Rate / Liter", Formatters.currencyPrecise(state.settings.ratePerExcessLiter, state.currency))
+                        DetailRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency))
                         DetailRow("Amount", Formatters.currency(draft.bill.amount, state.currency))
                     }
                 }

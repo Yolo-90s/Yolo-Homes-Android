@@ -63,6 +63,7 @@ fun WaterBillScreen(
                 Text("Reading not found.", style = MaterialTheme.typography.bodyMedium)
                 return@Column
             }
+            val rateInfo = state.settings.billingRateInfo()
             SurfaceCard {
                 Column {
                     Text(state.settings.apartmentName, style = MaterialTheme.typography.titleMedium)
@@ -79,9 +80,9 @@ fun WaterBillScreen(
                     DetailRow("Previous Reading", Formatters.liters(reading.previousReading))
                     DetailRow("Current Reading", Formatters.liters(reading.currentReading))
                     DetailRow("Usage", Formatters.liters(reading.usageLiters))
-                    DetailRow("Exclude Limit (≤)", Formatters.liters(state.settings.freeLiters))
+                    DetailRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit))
                     DetailRow("Billable Usage", Formatters.liters(reading.excessLiters))
-                    DetailRow("Rate / Liter", Formatters.currencyPrecise(state.settings.ratePerExcessLiter, state.currency))
+                    DetailRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency))
                     DetailRow("Date", Formatters.shortDate(reading.date))
                 }
             }
@@ -99,9 +100,9 @@ fun WaterBillScreen(
                             PdfRow("Previous Reading", Formatters.liters(reading.previousReading)),
                             PdfRow("Current Reading", Formatters.liters(reading.currentReading)),
                             PdfRow("Usage", Formatters.liters(reading.usageLiters)),
-                            PdfRow("Exclude Limit", Formatters.liters(state.settings.freeLiters)),
+                            PdfRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit)),
                             PdfRow("Billable Usage", Formatters.liters(reading.excessLiters)),
-                            PdfRow("Rate / Liter", Formatters.currencyPrecise(state.settings.ratePerExcessLiter, state.currency)),
+                            PdfRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency)),
                             PdfRow("Amount", Formatters.currency(reading.amount, state.currency), emphasize = true)
                         )
                     )

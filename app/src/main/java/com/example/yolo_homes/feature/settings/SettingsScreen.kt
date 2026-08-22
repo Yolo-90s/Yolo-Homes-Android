@@ -36,9 +36,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.yolo_homes.ui.components.LabeledDropdown
 import com.example.yolo_homes.ui.components.PrimaryButton
 import com.example.yolo_homes.ui.components.SectionHeader
 import com.example.yolo_homes.ui.components.SurfaceCard
+
+private data class BillingMethodOption(val value: String, val label: String)
+private val BILLING_METHOD_OPTIONS = listOf(
+    BillingMethodOption("flat", "Flat Rate (per liter)"),
+    BillingMethodOption("tiered", "Tiered (Free Allowance + Excess Rate)")
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,8 +58,11 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
 
+    var billingMethod by remember(settings) { mutableStateOf(settings.billingMethod) }
     var freeLiters by remember(settings) { mutableStateOf(settings.freeLiters.toString()) }
     var rate by remember(settings) { mutableStateOf(settings.ratePerExcessLiter.toString()) }
+    var freeLitersMonthly by remember(settings) { mutableStateOf(settings.freeLitersMonthly.toString()) }
+    var tieredRate by remember(settings) { mutableStateOf(settings.tieredRatePerLiter.toString()) }
     var currency by remember(settings) { mutableStateOf(settings.currency) }
     var readingFrequency by remember(settings) { mutableStateOf(settings.readingFrequency) }
     var waterSource by remember(settings) { mutableStateOf(settings.waterSource) }
@@ -123,14 +133,35 @@ fun SettingsScreen(
             }
 
             SectionHeader("Water Billing")
-            field("Rate per Liter (${currency.ifBlank { "₹" }})", rate, isAdmin, KeyboardType.Decimal) { rate = it }
-            field("Free / Exclude Limit (L)", freeLiters, isAdmin, KeyboardType.Decimal) { freeLiters = it }
-            Text(
-                "Water meters ship showing ~100+ L. The first ${freeLiters.ifBlank { "200" }} L are excluded — " +
-                    "billing counts only liters above this baseline, charged at the rate per liter.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            LabeledDropdown(
+                label = "Billing Method",
+                options = BILLING_METHOD_OPTIONS,
+                selected = BILLING_METHOD_OPTIONS.firstOrNull { it.value == billingMethod }
+                    ?: BILLING_METHOD_OPTIONS.first(),
+                optionLabel = { it.label },
+                onSelect = { billingMethod = it.value },
+                enabled = isAdmin
             )
+
+            if (billingMethod == "tiered") {
+                field("Free Allowance per Month (L)", freeLitersMonthly, isAdmin, KeyboardType.Decimal) { freeLitersMonthly = it }
+                field("Rate per Excess Liter (${currency.ifBlank { "₹" }})", tieredRate, isAdmin, KeyboardType.Decimal) { tieredRate = it }
+                Text(
+                    "Usage up to ${freeLitersMonthly.ifBlank { "10000" }} L per billing period is free. Only usage " +
+                        "above that is charged, at the rate per excess liter.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                field("Rate per Liter (${currency.ifBlank { "₹" }})", rate, isAdmin, KeyboardType.Decimal) { rate = it }
+                field("Free / Exclude Limit (L)", freeLiters, isAdmin, KeyboardType.Decimal) { freeLiters = it }
+                Text(
+                    "Water meters ship showing ~100+ L. The first ${freeLiters.ifBlank { "200" }} L are excluded — " +
+                        "billing counts only liters above this baseline, charged at the rate per liter.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             field("Currency Symbol", currency, isAdmin, KeyboardType.Text) { currency = it }
             field("Reading Frequency", readingFrequency, isAdmin, KeyboardType.Text) { readingFrequency = it }
             field("Water Source", waterSource, isAdmin, KeyboardType.Text) { waterSource = it }
@@ -150,8 +181,11 @@ fun SettingsScreen(
                     onClick = {
                         viewModel.save(
                             settings.copy(
+                                billingMethod = billingMethod,
                                 freeLiters = freeLiters.toDoubleOrNull() ?: settings.freeLiters,
                                 ratePerExcessLiter = rate.toDoubleOrNull() ?: settings.ratePerExcessLiter,
+                                freeLitersMonthly = freeLitersMonthly.toDoubleOrNull() ?: settings.freeLitersMonthly,
+                                tieredRatePerLiter = tieredRate.toDoubleOrNull() ?: settings.tieredRatePerLiter,
                                 currency = currency.ifBlank { settings.currency },
                                 readingFrequency = readingFrequency,
                                 waterSource = waterSource,

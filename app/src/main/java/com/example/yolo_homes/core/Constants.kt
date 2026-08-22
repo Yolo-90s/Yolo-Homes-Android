@@ -18,6 +18,8 @@ object Roles {
     const val RESIDENT = "resident"
 }
 
+// Values match the webapp's PAYMENT_METHODS exactly — both apps write to the same
+// maintenanceReceipts collection, and mismatched casing/wording breaks cross-app filtering.
 object PaymentMethods {
     val ALL = listOf("Cash", "UPI", "Bank Transfer", "Cheque", "Card")
 }
