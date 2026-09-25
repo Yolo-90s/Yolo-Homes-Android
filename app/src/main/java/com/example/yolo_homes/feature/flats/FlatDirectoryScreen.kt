@@ -201,8 +201,11 @@ private fun FlatRow(
                 Text(
                     flat.occupantName.ifBlank { "—" },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (flat.vacant) Warning else MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            if (flat.vacant) {
+                AssistChip(onClick = onClick, label = { Text("Vacant") })
             }
             if (flat.isStaff) {
                 AssistChip(onClick = onClick, label = { Text("Staff") })
@@ -233,6 +236,7 @@ private fun AddEditFlatDialog(
     var tenantName by remember(flat) { mutableStateOf(flat?.tenantName ?: "") }
     var tenantPhone by remember(flat) { mutableStateOf(flat?.tenantPhone ?: "") }
     var email by remember(flat) { mutableStateOf(flat?.email ?: "") }
+    var vacant by remember(flat) { mutableStateOf(flat?.vacant ?: false) }
     var role by remember(flat) {
         mutableStateOf(Role.from(flat?.role).let { if (it == Role.UNKNOWN) Role.OWNER else it })
     }
@@ -271,6 +275,12 @@ private fun AddEditFlatDialog(
                     optionLabel = { if (it == UnitTypes.STAFF) "Staff / Watchman" else "Resident Flat" },
                     onSelect = { unitType = it }
                 )
+                if (!isStaff) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Currently vacant", modifier = Modifier.weight(1f))
+                        androidx.compose.material3.Switch(checked = vacant, onCheckedChange = { vacant = it })
+                    }
+                }
                 OutlinedTextField(
                     value = ownerName,
                     onValueChange = { ownerName = it },
@@ -341,7 +351,8 @@ private fun AddEditFlatDialog(
                             tenantPhone = if (isStaff) "" else tenantPhone.trim(),
                             role = if (isStaff) "resident" else role.name.lowercase(),
                             email = email.trim(),
-                            unitType = unitType
+                            unitType = unitType,
+                            vacant = !isStaff && vacant
                         )
                     )
                 },

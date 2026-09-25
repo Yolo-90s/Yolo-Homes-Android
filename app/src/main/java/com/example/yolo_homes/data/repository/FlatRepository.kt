@@ -75,6 +75,7 @@ class FlatRepository @Inject constructor(
         "tenantPhone" to flat.tenantPhone,
         "role" to flat.role,
         "email" to flat.email,
-        "unitType" to flat.unitType
+        "unitType" to flat.unitType,
+        "vacant" to flat.vacant
     )
 }

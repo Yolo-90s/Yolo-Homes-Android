@@ -18,7 +18,9 @@ data class Flat(
     /** Google sign-in email linked to this flat (set via the Flat Directory). */
     val email: String = "",
     /** "resident" (default) or "staff" — e.g. the gatehouse/watchman unit (G01). */
-    val unitType: String = UnitTypes.RESIDENT
+    val unitType: String = UnitTypes.RESIDENT,
+    /** True when no one currently lives here (between owners/tenants). */
+    val vacant: Boolean = false
 ) {
     val isStaff: Boolean get() = unitType == UnitTypes.STAFF
 
@@ -26,7 +28,7 @@ data class Flat(
         get() = if (block.isNotBlank()) "$block-$flatNo" else flatNo
 
     val occupantName: String
-        get() = tenantName.ifBlank { ownerName }
+        get() = if (vacant) "Vacant" else tenantName.ifBlank { ownerName }
 
     companion object {
         /**

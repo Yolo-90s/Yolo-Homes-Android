@@ -73,6 +73,13 @@ fun FlatDetailScreen(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(flat?.occupantName?.ifBlank { "—" } ?: "—", style = MaterialTheme.typography.titleMedium)
+                            if (flat?.vacant == true) {
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text("Vacant") },
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
                             if (flat?.isStaff == true) {
                                 AssistChip(
                                     onClick = {},

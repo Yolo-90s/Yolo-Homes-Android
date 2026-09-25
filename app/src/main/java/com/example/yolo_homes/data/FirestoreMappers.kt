@@ -96,7 +96,8 @@ fun DocumentSnapshot.toFlat(): Flat = Flat(
     tenantPhone = text("tenantPhone"),
     role = strOrNull("role") ?: "resident",
     email = strOrNull("email") ?: "",
-    unitType = strOrNull("unitType") ?: "resident"
+    unitType = strOrNull("unitType") ?: "resident",
+    vacant = (get("vacant") as? Boolean) ?: false
 )
 
 /** Maps a posts doc (the Home screen's Community Board). */
