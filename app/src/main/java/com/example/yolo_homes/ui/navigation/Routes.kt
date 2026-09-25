@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.example.yolo_homes.data.model.UserSession
 
 /** All navigation destinations as string routes. */
 object Routes {
@@ -49,6 +50,17 @@ enum class TopLevelDestination(
     WATER(Routes.WATER, "Water", Icons.Outlined.WaterDrop),
     REPORTS(Routes.REPORTS, "Reports", Icons.Outlined.Assessment),
     PROFILE(Routes.PROFILE, "Profile", Icons.Outlined.Person);
+
+    /**
+     * A Guest sees Home + Profile only (Community Board is enough — everything else is
+     * flat-scoped or building-wide data they have no access to). A Member additionally sees
+     * Maintenance + Water (their own flat) but not Reports (building-wide, Admin/Developer only).
+     */
+    fun isVisibleFor(session: UserSession): Boolean = when (this) {
+        DASHBOARD, PROFILE -> true
+        MAINTENANCE, WATER -> !session.isGuest
+        REPORTS -> session.isAdmin
+    }
 
     companion object {
         val routes = entries.map { it.route }.toSet()

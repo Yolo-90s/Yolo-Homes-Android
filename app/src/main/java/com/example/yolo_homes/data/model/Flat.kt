@@ -14,7 +14,7 @@ data class Flat(
     val ownerPhone: String = "",
     val tenantName: String = "",
     val tenantPhone: String = "",
-    val role: String = "resident",
+    val role: String = "member",
     /** Google sign-in email linked to this flat (set via the Flat Directory). */
     val email: String = "",
     /** "resident" (default) or "staff" — e.g. the gatehouse/watchman unit (G01). */

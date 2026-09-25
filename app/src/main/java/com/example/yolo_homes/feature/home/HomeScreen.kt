@@ -106,8 +106,11 @@ fun HomeScreen(
                     color = Color.White
                 )
                 Text(
-                    if (session.isAdmin) "Here's what's happening in your building."
-                    else "Here's your apartment overview.",
+                    when {
+                        session.isAdmin -> "Here's what's happening in your building."
+                        session.isGuest -> "Here's what's happening in the building."
+                        else -> "Here's your apartment overview."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.9f)
                 )
@@ -117,64 +120,72 @@ fun HomeScreen(
                 Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(
-                        "Maintenance This Month", maintenanceState.currentMonthTotal,
-                        Icons.Outlined.Payments, MaterialTheme.colorScheme.primary, Modifier.weight(1f)
-                    ) { Formatters.currency(it, maintenanceState.currency) }
-                    StatCard(
-                        "Water This Month", waterState.totalConsumption,
-                        Icons.Outlined.WaterDrop, ChartSky, Modifier.weight(1f)
-                    ) { Formatters.liters(it) }
-                }
-
-                HomeShortcutCard(
-                    title = "Maintenance",
-                    subtitle = "View payment history & receipts",
-                    icon = Icons.Outlined.Receipt,
-                    onClick = onOpenMaintenance
-                )
-                HomeShortcutCard(
-                    title = "Water",
-                    subtitle = "View usage, bills & meter readings",
-                    icon = Icons.Outlined.WaterDrop,
-                    onClick = onOpenWater
-                )
-                HomeShortcutCard(
-                    title = "Reports",
-                    subtitle = "Download monthly summaries as PDF",
-                    icon = Icons.Outlined.Assessment,
-                    onClick = onOpenReports
-                )
-                if (session.isResident && !session.flatId.isNullOrBlank()) {
-                    HomeShortcutCard(
-                        title = "My Flat",
-                        subtitle = "Your unit's full bill history",
-                        icon = Icons.Outlined.Home,
-                        onClick = { onOpenMyFlat(session.flatId!!) }
-                    )
-                }
-                HomeShortcutCard(
-                    title = "Flat Directory",
-                    subtitle = if (session.isAdmin) "Manage units, residents & staff" else "See all flats in the building",
-                    icon = Icons.Outlined.Apartment,
-                    onClick = onOpenFlatDirectory
-                )
-
-                if (session.isAdmin) {
-                    Text(
-                        "Quick add",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // A Guest (not yet linked to a flat) sees the Community Board only — everything
+                // below is flat-scoped or building-wide data they have no access to.
+                if (!session.isGuest) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(onClick = onAddMaintenance, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(" Payment")
-                        }
-                        OutlinedButton(onClick = onAddReading, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(" Reading")
+                        StatCard(
+                            "Maintenance This Month", maintenanceState.currentMonthTotal,
+                            Icons.Outlined.Payments, MaterialTheme.colorScheme.primary, Modifier.weight(1f)
+                        ) { Formatters.currency(it, maintenanceState.currency) }
+                        StatCard(
+                            "Water This Month", waterState.totalConsumption,
+                            Icons.Outlined.WaterDrop, ChartSky, Modifier.weight(1f)
+                        ) { Formatters.liters(it) }
+                    }
+
+                    HomeShortcutCard(
+                        title = "Maintenance",
+                        subtitle = "View payment history & receipts",
+                        icon = Icons.Outlined.Receipt,
+                        onClick = onOpenMaintenance
+                    )
+                    HomeShortcutCard(
+                        title = "Water",
+                        subtitle = "View usage, bills & meter readings",
+                        icon = Icons.Outlined.WaterDrop,
+                        onClick = onOpenWater
+                    )
+                    if (session.isMember && !session.flatId.isNullOrBlank()) {
+                        HomeShortcutCard(
+                            title = "My Flat",
+                            subtitle = "Your unit's full bill history",
+                            icon = Icons.Outlined.Home,
+                            onClick = { onOpenMyFlat(session.flatId!!) }
+                        )
+                    }
+                    // Reports (building-wide) and the Flat Directory are Admin/Developer only —
+                    // not part of a Member's "own flat data" scope.
+                    if (session.isAdmin) {
+                        HomeShortcutCard(
+                            title = "Reports",
+                            subtitle = "Download monthly summaries as PDF",
+                            icon = Icons.Outlined.Assessment,
+                            onClick = onOpenReports
+                        )
+                        HomeShortcutCard(
+                            title = "Flat Directory",
+                            subtitle = if (session.canManageFlats) "Manage units, residents & staff" else "See all flats in the building",
+                            icon = Icons.Outlined.Apartment,
+                            onClick = onOpenFlatDirectory
+                        )
+                    }
+
+                    if (session.isAdmin) {
+                        Text(
+                            "Quick add",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(onClick = onAddMaintenance, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text(" Payment")
+                            }
+                            OutlinedButton(onClick = onAddReading, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text(" Reading")
+                            }
                         }
                     }
                 }

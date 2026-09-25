@@ -11,5 +11,7 @@ data class UserSession(
     val flatId: String? = null
 ) {
     val isAdmin: Boolean get() = role.canWrite
-    val isResident: Boolean get() = role.isResident
+    val canManageFlats: Boolean get() = role.canManageFlats
+    val isMember: Boolean get() = role.isMember
+    val isGuest: Boolean get() = role.isGuest
 }

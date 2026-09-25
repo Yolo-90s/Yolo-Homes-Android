@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.yolo_homes.core.UnitTypes
 import com.example.yolo_homes.data.model.Flat
 import com.example.yolo_homes.data.model.Role
+import com.example.yolo_homes.ui.components.AccessRestrictedScreen
 import com.example.yolo_homes.ui.components.GradientHeader
 import com.example.yolo_homes.ui.components.LabeledDropdown
 import com.example.yolo_homes.ui.components.SectionHeader
@@ -72,6 +73,11 @@ fun FlatDirectoryScreen(
     val snackbar = remember { SnackbarHostState() }
     var editing by remember { mutableStateOf<Flat?>(null) }
     var creating by remember { mutableStateOf(false) }
+
+    if (!state.loading && !state.canView) {
+        AccessRestrictedScreen(title = "Flat Directory", onBack = onBack)
+        return
+    }
 
     LaunchedEffect(saveState) {
         when (val s = saveState) {
@@ -101,7 +107,7 @@ fun FlatDirectoryScreen(
             )
         },
         floatingActionButton = {
-            if (state.isAdmin) {
+            if (state.canManageFlats) {
                 FloatingActionButton(onClick = { creating = true }) {
                     Icon(Icons.Rounded.Add, contentDescription = "Add unit")
                 }
@@ -134,7 +140,7 @@ fun FlatDirectoryScreen(
                 FlatRow(
                     flat = flat,
                     onClick = { onOpenFlat(flat.id.ifBlank { flat.flatNo }) },
-                    onEdit = if (state.isAdmin) ({ editing = flat }) else null,
+                    onEdit = if (state.canManageFlats) ({ editing = flat }) else null,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
@@ -144,7 +150,7 @@ fun FlatDirectoryScreen(
                     FlatRow(
                         flat = flat,
                         onClick = { onOpenFlat(flat.id.ifBlank { flat.flatNo }) },
-                        onEdit = if (state.isAdmin) ({ editing = flat }) else null,
+                        onEdit = if (state.canManageFlats) ({ editing = flat }) else null,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
@@ -238,10 +244,10 @@ private fun AddEditFlatDialog(
     var email by remember(flat) { mutableStateOf(flat?.email ?: "") }
     var vacant by remember(flat) { mutableStateOf(flat?.vacant ?: false) }
     var role by remember(flat) {
-        mutableStateOf(Role.from(flat?.role).let { if (it == Role.UNKNOWN) Role.OWNER else it })
+        mutableStateOf(Role.from(flat?.role).let { if (it == Role.GUEST) Role.MEMBER else it })
     }
     val isStaff = unitType == UnitTypes.STAFF
-    val roleOptions = listOf(Role.DEVELOPER, Role.ADMIN, Role.OWNER, Role.TENANT)
+    val roleOptions = listOf(Role.DEVELOPER, Role.ADMIN, Role.MEMBER, Role.GUEST)
 
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
@@ -349,7 +355,7 @@ private fun AddEditFlatDialog(
                             ownerPhone = ownerPhone.trim(),
                             tenantName = if (isStaff) "" else tenantName.trim(),
                             tenantPhone = if (isStaff) "" else tenantPhone.trim(),
-                            role = if (isStaff) "resident" else role.name.lowercase(),
+                            role = if (isStaff) "guest" else role.name.lowercase(),
                             email = email.trim(),
                             unitType = unitType,
                             vacant = !isStaff && vacant

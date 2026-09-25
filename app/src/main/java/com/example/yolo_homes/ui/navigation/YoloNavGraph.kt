@@ -26,6 +26,7 @@ import com.example.yolo_homes.feature.water.WaterBillScreen
 import com.example.yolo_homes.feature.water.WaterHistoryScreen
 import com.example.yolo_homes.feature.water.WaterReportScreen
 import com.example.yolo_homes.feature.water.WaterScreen
+import com.example.yolo_homes.ui.components.AccessRestrictedScreen
 
 /**
  * Signed-in navigation. A persistent labeled bottom bar (Home / Maintenance
@@ -42,7 +43,7 @@ fun YoloNavGraph(
     val navController = rememberNavController()
 
     Scaffold(
-        bottomBar = { YoloBottomBar(navController) }
+        bottomBar = { YoloBottomBar(navController, session) }
     ) { padding ->
         NavHost(
             navController = navController,
@@ -63,25 +64,42 @@ fun YoloNavGraph(
             }
 
             composable(Routes.MAINTENANCE) {
-                MaintenanceScreen(
-                    isAdmin = session.isAdmin,
-                    onViewHistory = { navController.navigate(Routes.MAINTENANCE_HISTORY) },
-                    onReceiptClick = { navController.navigate(Routes.receiptDetail(it)) },
-                    onAddMaintenance = { navController.navigate(Routes.ADD_MAINTENANCE) },
-                    onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
-                )
+                // Guests see the Community Board only — no Maintenance access.
+                if (session.isGuest) {
+                    AccessRestrictedScreen(
+                        title = "Maintenance",
+                        onBack = { navController.navigate(Routes.DASHBOARD) },
+                        message = "Ask an admin to link your account to your flat to see this."
+                    )
+                } else {
+                    MaintenanceScreen(
+                        isAdmin = session.isAdmin,
+                        onViewHistory = { navController.navigate(Routes.MAINTENANCE_HISTORY) },
+                        onReceiptClick = { navController.navigate(Routes.receiptDetail(it)) },
+                        onAddMaintenance = { navController.navigate(Routes.ADD_MAINTENANCE) },
+                        onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
+                    )
+                }
             }
 
             composable(Routes.WATER) {
-                WaterScreen(
-                    isAdmin = session.isAdmin,
-                    onViewHistory = { navController.navigate(Routes.READING_HISTORY) },
-                    onReadingClick = { navController.navigate(Routes.waterBill(it)) },
-                    onViewConsumption = { navController.navigate(Routes.FLAT_CONSUMPTION) },
-                    onOpenWaterReport = { navController.navigate(Routes.WATER_REPORT) },
-                    onAddReading = { navController.navigate(Routes.ADD_READING) },
-                    onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
-                )
+                if (session.isGuest) {
+                    AccessRestrictedScreen(
+                        title = "Water",
+                        onBack = { navController.navigate(Routes.DASHBOARD) },
+                        message = "Ask an admin to link your account to your flat to see this."
+                    )
+                } else {
+                    WaterScreen(
+                        isAdmin = session.isAdmin,
+                        onViewHistory = { navController.navigate(Routes.READING_HISTORY) },
+                        onReadingClick = { navController.navigate(Routes.waterBill(it)) },
+                        onViewConsumption = { navController.navigate(Routes.FLAT_CONSUMPTION) },
+                        onOpenWaterReport = { navController.navigate(Routes.WATER_REPORT) },
+                        onAddReading = { navController.navigate(Routes.ADD_READING) },
+                        onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
+                    )
+                }
             }
 
             composable(Routes.FLAT_DIRECTORY) {
@@ -102,7 +120,16 @@ fun YoloNavGraph(
             }
 
             composable(Routes.REPORTS) {
-                ReportsScreen()
+                // Building-wide reports are Admin/Developer only — not part of a Member's
+                // "own flat data" scope.
+                if (!session.isAdmin) {
+                    AccessRestrictedScreen(
+                        title = "Reports",
+                        onBack = { navController.navigate(Routes.DASHBOARD) }
+                    )
+                } else {
+                    ReportsScreen()
+                }
             }
             composable(Routes.PROFILE) {
                 ProfileScreen(
@@ -115,6 +142,7 @@ fun YoloNavGraph(
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     isAdmin = session.isAdmin,
+                    canManageFlats = session.canManageFlats,
                     onBack = { navController.popBackStack() },
                     onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
                 )
@@ -122,7 +150,13 @@ fun YoloNavGraph(
 
             // ---- Maintenance ----
             composable(Routes.ADD_MAINTENANCE) {
-                AddMaintenanceScreen(onBack = { navController.popBackStack() }, onSaved = { navController.popBackStack() })
+                // Capturing a payment is Admin/Developer only — guard the route directly since
+                // it's a write, not just a view (defense-in-depth beyond hiding the FAB/button).
+                if (!session.isAdmin) {
+                    AccessRestrictedScreen(title = "Add Maintenance", onBack = { navController.popBackStack() })
+                } else {
+                    AddMaintenanceScreen(onBack = { navController.popBackStack() }, onSaved = { navController.popBackStack() })
+                }
             }
             composable(Routes.MAINTENANCE_HISTORY) {
                 MaintenanceHistoryScreen(
@@ -142,7 +176,11 @@ fun YoloNavGraph(
 
             // ---- Water ----
             composable(Routes.ADD_READING) {
-                AddReadingScreen(onBack = { navController.popBackStack() }, onSaved = { navController.popBackStack() })
+                if (!session.isAdmin) {
+                    AccessRestrictedScreen(title = "Add Reading", onBack = { navController.popBackStack() })
+                } else {
+                    AddReadingScreen(onBack = { navController.popBackStack() }, onSaved = { navController.popBackStack() })
+                }
             }
             composable(Routes.READING_HISTORY) {
                 WaterHistoryScreen(

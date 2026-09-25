@@ -60,14 +60,13 @@ class AuthRepository @Inject constructor(
         val resolution = try {
             resolveRoleAndFlat(email = fbUser.email, phone = fbUser.phoneNumber)
         } catch (e: Exception) {
-            RoleResolution(Role.UNKNOWN, null)
+            RoleResolution(Role.GUEST, null)
         }
-        // Mirror the role onto the user profile so Firestore rules can enforce writes.
-        if (resolution.role != Role.UNKNOWN) {
-            runCatching {
-                db.collection(FirestoreCollections.USERS).document(fbUser.uid)
-                    .set(mapOf("role" to resolution.role.name.lowercase()), SetOptions.merge()).await()
-            }
+        // Always mirror the resolved role (including guest) onto the user profile so
+        // Firestore rules can enforce writes and the stored value always reflects ground truth.
+        runCatching {
+            db.collection(FirestoreCollections.USERS).document(fbUser.uid)
+                .set(mapOf("role" to resolution.role.name.lowercase()), SetOptions.merge()).await()
         }
         val session = UserSession(user = profile, role = resolution.role, flatId = resolution.flatId)
         sessionManager.update(session)
@@ -82,7 +81,7 @@ class AuthRepository @Inject constructor(
      * drives access; the corresponding `flats` doc id is returned to scope resident data.
      */
     private suspend fun resolveRoleAndFlat(email: String?, phone: String?): RoleResolution {
-        if (email == null && phone == null) return RoleResolution(Role.UNKNOWN, null)
+        if (email == null && phone == null) return RoleResolution(Role.GUEST, null)
         val flats = db.collection(FirestoreCollections.MASTER_FLATS).get().await().documents
         val matches = flats.filter { doc ->
             val docEmail = doc.get("email")?.toString()
@@ -91,10 +90,11 @@ class AuthRepository @Inject constructor(
             (email != null && docEmail != null && docEmail.equals(email, ignoreCase = true)) ||
                 (phone != null && (phone == ownerPhone || phone == tenantPhone))
         }
-        if (matches.isEmpty()) return RoleResolution(Role.UNKNOWN, null)
+        // No matching masterFlats doc — not yet assigned to a flat. Default: guest.
+        if (matches.isEmpty()) return RoleResolution(Role.GUEST, null)
 
         // A user can be linked to several flats (e.g. owner of their own + admin elsewhere).
-        // Grant the highest role so an admin assignment is never shadowed by an owner/tenant row.
+        // Grant the highest role so an admin assignment is never shadowed by a member row.
         val match = matches.maxByOrNull { Role.from(it.get("role")?.toString()).priority }!!
 
         val role = Role.from(match.get("role")?.toString())

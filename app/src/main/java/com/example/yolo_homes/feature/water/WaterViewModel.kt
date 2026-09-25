@@ -111,7 +111,7 @@ class WaterViewModel @Inject constructor(
 
         // Residents (owner/tenant) only see their own flat — resolve their flatNo from their flats-doc id.
         val residentNo = session?.flatId?.let { canonicalNo(it) }
-        val resident = session != null && session.isResident && residentNo != null
+        val resident = session != null && session.isMember && residentNo != null
         val flats = if (resident) allFlats.filter { it.flatNo == residentNo } else allFlats
         val readings = if (resident) readingsAll.filter { canonicalNo(it.flatId) == residentNo } else readingsAll
 

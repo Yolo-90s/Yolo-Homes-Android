@@ -51,6 +51,7 @@ private val BILLING_METHOD_OPTIONS = listOf(
 @Composable
 fun SettingsScreen(
     isAdmin: Boolean,
+    canManageFlats: Boolean = isAdmin,
     onBack: () -> Unit,
     onOpenFlatDirectory: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
@@ -124,7 +125,8 @@ fun SettingsScreen(
                         ) {
                             Text("Flat Directory", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "Add/edit flats & staff units, link emails & roles",
+                                if (canManageFlats) "Add/edit flats & staff units, link emails & roles"
+                                else "View flats, residents & staff (view only)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

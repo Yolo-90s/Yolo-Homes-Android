@@ -51,7 +51,7 @@ class MaintenanceViewModel @Inject constructor(
         sessionManager.session
     ) { receipts, flats, settings, session ->
         // Residents (owner/tenant) only see their own flat's receipts.
-        val scoped = if (session != null && session.isResident && session.flatId != null) {
+        val scoped = if (session != null && session.isMember && session.flatId != null) {
             receipts.filter { it.flatId == session.flatId }
         } else receipts
 

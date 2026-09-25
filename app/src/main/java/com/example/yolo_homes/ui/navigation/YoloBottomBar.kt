@@ -10,6 +10,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.yolo_homes.data.model.UserSession
 
 /**
  * The persistent bottom navigation — Home / Maintenance / Water / Reports /
@@ -17,14 +18,20 @@ import androidx.navigation.compose.currentBackStackEntryAsState
  * actions and swipeable tabs with no visible affordance (see plan notes).
  * [TopLevelDestination] already had everything this needs (route, label,
  * icon) — it was just never wired to an actual `NavigationBar` until now.
+ *
+ * Tabs are filtered by role: a Guest only sees Home + Profile (everything
+ * else is flat-scoped or building-wide data they have no access to); a
+ * Member additionally sees Maintenance + Water (their own flat's data) but
+ * not Reports (building-wide, Admin/Developer only).
  */
 @Composable
-fun YoloBottomBar(navController: NavHostController) {
+fun YoloBottomBar(navController: NavHostController, session: UserSession) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+    val visibleDestinations = TopLevelDestination.entries.filter { it.isVisibleFor(session) }
 
     NavigationBar {
-        TopLevelDestination.entries.forEach { destination ->
+        visibleDestinations.forEach { destination ->
             val selected = currentDestination?.hierarchy?.any { it.route == destination.route } == true
             NavigationBarItem(
                 selected = selected,

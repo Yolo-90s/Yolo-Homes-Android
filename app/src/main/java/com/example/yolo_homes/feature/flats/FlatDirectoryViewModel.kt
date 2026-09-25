@@ -19,7 +19,10 @@ data class FlatDirectoryUiState(
     val loading: Boolean = true,
     val residentFlats: List<Flat> = emptyList(),
     val staffUnits: List<Flat> = emptyList(),
-    val isAdmin: Boolean = false
+    /** Browse the directory at all — Admin or Developer only (Member/Guest do not). */
+    val canView: Boolean = false,
+    /** Add/edit a flat's details — Developer only (Admin can view but not change flat records). */
+    val canManageFlats: Boolean = false
 )
 
 sealed interface FlatSaveState {
@@ -55,7 +58,8 @@ class FlatDirectoryViewModel @Inject constructor(
             loading = false,
             residentFlats = all.filterNot { it.isStaff },
             staffUnits = all.filter { it.isStaff },
-            isAdmin = session?.isAdmin == true
+            canView = session?.isAdmin == true,
+            canManageFlats = session?.canManageFlats == true
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FlatDirectoryUiState())
 
