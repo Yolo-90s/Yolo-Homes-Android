@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +9,22 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
 }
+
+// Pull release signing creds from local.properties so they never end up in
+// version control. If the file or any key is missing, release builds fall
+// back to unsigned — the build still works for `assembleDebug`.
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val releaseKeystorePath: String? = localProps.getProperty("YOLO_KEYSTORE_FILE")
+val releaseKeystorePassword: String? = localProps.getProperty("YOLO_KEYSTORE_PASSWORD")
+val releaseKeyAlias: String? = localProps.getProperty("YOLO_KEY_ALIAS")
+val releaseKeyPassword: String? = localProps.getProperty("YOLO_KEY_PASSWORD")
+val hasReleaseSigning = !releaseKeystorePath.isNullOrBlank() &&
+    !releaseKeystorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.example.yolo_homes"
@@ -25,8 +43,22 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
