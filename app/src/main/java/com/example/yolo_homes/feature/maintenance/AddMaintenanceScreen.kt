@@ -48,7 +48,11 @@ fun AddMaintenanceScreen(
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
 
     var selectedFlat by remember { mutableStateOf<Flat?>(null) }
-    var amount by remember { mutableStateOf("") }
+    // Prefills from the configured monthly rate (Settings > Maintenance) so admins aren't
+    // retyping ₹1500 from memory every time — still freely editable per receipt.
+    var amount by remember(state.maintenanceMonthlyRate) {
+        mutableStateOf(if (state.maintenanceMonthlyRate > 0) state.maintenanceMonthlyRate.toInt().toString() else "")
+    }
     var paymentMethod by remember { mutableStateOf(PaymentMethods.ALL.first()) }
     val periods = remember { Formatters.recentPeriods(12).reversed() }
     var period by remember { mutableStateOf(periods.first()) }

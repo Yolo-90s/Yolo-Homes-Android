@@ -71,6 +71,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── Yolo-Home: Community Board (news/events/notices) ──────────────
+    // Any resident/admin can read; only admins can post/edit/remove.
+    match /posts/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
     // ── YoloAIO: chat (1:1 DMs + groups, gated on participants array) ─
     // 1:1 chats are unchanged in shape (chatId = 2-sorted-uid join,
     // isGroup absent). Group chats add isGroup/groupName/groupPhotoUrl/

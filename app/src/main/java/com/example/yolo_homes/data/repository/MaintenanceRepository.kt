@@ -8,6 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,6 +28,12 @@ class MaintenanceRepository @Inject constructor(
 
     fun observeReceiptsForPeriod(period: String): Flow<List<MaintenanceReceipt>> =
         collection.whereEqualTo("period", period).asFlow { it.toReceipt() }
+            .catch { emit(emptyList()) }
+
+    /** All receipts for one flat (Flat Detail's multi-year history) — no artificial limit. */
+    fun observeReceiptsForFlat(flatId: String): Flow<List<MaintenanceReceipt>> =
+        collection.whereEqualTo("flatId", flatId).asFlow { it.toReceipt() }
+            .map { it.sortedByDescending { r -> r.paidDate } }
             .catch { emit(emptyList()) }
 
     suspend fun getReceipts(): List<MaintenanceReceipt> =

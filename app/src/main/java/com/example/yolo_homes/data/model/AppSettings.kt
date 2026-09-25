@@ -36,7 +36,11 @@ data class AppSettings(
     // Maintenance screen — the app has no in-app payment flow (receipts
     // are logged after the fact), so this is how residents learn how to
     // actually pay, e.g. "Pay via UPI: office@upi, or contact the office."
-    val payInstructions: String = ""
+    val payInstructions: String = "",
+    // The building's standard monthly maintenance amount (e.g. 1500). Prefills
+    // the amount field on Add Maintenance so admins aren't retyping it from
+    // memory every time — still freely editable per receipt.
+    val maintenanceMonthlyRate: Double = 1500.0
 ) {
     /**
      * Computes usage / billable / amount for a meter reading, per [billingMethod].
@@ -78,7 +82,7 @@ data class AppSettings(
             tiered = tiered,
             rate = if (tiered) tieredRatePerLiter else ratePerExcessLiter,
             limit = if (tiered) freeLitersMonthly else freeLiters,
-            limitLabel = if (tiered) "Free amount each month" else "Free water limit"
+            limitLabel = if (tiered) "Free water limit (per month)" else "Free water limit"
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.example.yolo_homes.data.model
 
+import com.example.yolo_homes.core.UnitTypes
 import com.google.firebase.firestore.DocumentId
 
 /**
@@ -14,9 +15,13 @@ data class Flat(
     val tenantName: String = "",
     val tenantPhone: String = "",
     val role: String = "resident",
-    /** Google sign-in email linked to this flat (set via Manage Residents). */
-    val email: String = ""
+    /** Google sign-in email linked to this flat (set via the Flat Directory). */
+    val email: String = "",
+    /** "resident" (default) or "staff" — e.g. the gatehouse/watchman unit (G01). */
+    val unitType: String = UnitTypes.RESIDENT
 ) {
+    val isStaff: Boolean get() = unitType == UnitTypes.STAFF
+
     val displayName: String
         get() = if (block.isNotBlank()) "$block-$flatNo" else flatNo
 

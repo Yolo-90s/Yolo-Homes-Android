@@ -14,7 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,12 +52,13 @@ private val BILLING_METHOD_OPTIONS = listOf(
 fun SettingsScreen(
     isAdmin: Boolean,
     onBack: () -> Unit,
-    onManageResidents: () -> Unit = {},
+    onOpenFlatDirectory: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
 
+    var maintenanceMonthlyRate by remember(settings) { mutableStateOf(settings.maintenanceMonthlyRate.toString()) }
     var billingMethod by remember(settings) { mutableStateOf(settings.billingMethod) }
     var freeLiters by remember(settings) { mutableStateOf(settings.freeLiters.toString()) }
     var rate by remember(settings) { mutableStateOf(settings.ratePerExcessLiter.toString()) }
@@ -109,10 +110,10 @@ fun SettingsScreen(
 
             if (isAdmin) {
                 SectionHeader("Access")
-                SurfaceCard(Modifier.clickable { onManageResidents() }) {
+                SurfaceCard(Modifier.clickable { onOpenFlatDirectory() }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Outlined.Group,
+                            Icons.Outlined.Apartment,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -121,9 +122,9 @@ fun SettingsScreen(
                                 .weight(1f)
                                 .padding(start = 12.dp)
                         ) {
-                            Text("Manage Residents", style = MaterialTheme.typography.titleSmall)
+                            Text("Flat Directory", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "Link emails & assign roles per flat",
+                                "Add/edit flats & staff units, link emails & roles",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -132,6 +133,19 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            SectionHeader("Maintenance")
+            field(
+                "Monthly Rate (${currency.ifBlank { "₹" }})",
+                maintenanceMonthlyRate,
+                isAdmin,
+                KeyboardType.Decimal
+            ) { maintenanceMonthlyRate = it }
+            Text(
+                "Prefills the amount on Add Maintenance — still editable per receipt.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             SectionHeader("Water Billing")
             LabeledDropdown(
@@ -199,6 +213,7 @@ fun SettingsScreen(
                     onClick = {
                         viewModel.save(
                             settings.copy(
+                                maintenanceMonthlyRate = maintenanceMonthlyRate.toDoubleOrNull() ?: settings.maintenanceMonthlyRate,
                                 billingMethod = billingMethod,
                                 freeLiters = freeLiters.toDoubleOrNull() ?: settings.freeLiters,
                                 ratePerExcessLiter = rate.toDoubleOrNull() ?: settings.ratePerExcessLiter,

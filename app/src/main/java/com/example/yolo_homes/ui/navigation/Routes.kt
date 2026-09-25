@@ -32,7 +32,10 @@ object Routes {
     fun waterBill(id: String) = "water/bill/$id"
 
     const val SETTINGS = "settings"
-    const val MANAGE_RESIDENTS = "settings/residents"
+
+    const val FLAT_DIRECTORY = "flats"
+    const val FLAT_DETAIL = "flats/{flatId}"
+    fun flatDetail(id: String) = "flats/$id"
 }
 
 /** The five bottom-navigation tabs. */

@@ -25,6 +25,7 @@ import com.example.yolo_homes.core.Formatters
 import com.example.yolo_homes.core.PdfExporter
 import com.example.yolo_homes.core.PdfRow
 import com.example.yolo_homes.ui.components.DetailRow
+import com.example.yolo_homes.ui.components.FreeLimitUsageBar
 import com.example.yolo_homes.ui.components.PdfActionsRow
 import com.example.yolo_homes.ui.components.SurfaceCard
 
@@ -80,7 +81,12 @@ fun WaterBillScreen(
                     DetailRow("Previous Reading", Formatters.liters(reading.previousReading))
                     DetailRow("Current Reading", Formatters.liters(reading.currentReading))
                     DetailRow("Usage", Formatters.liters(reading.usageLiters))
-                    DetailRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit))
+                    FreeLimitUsageBar(
+                        label = rateInfo.limitLabel,
+                        used = reading.usageLiters,
+                        limit = rateInfo.limit,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
                     DetailRow("Amount You Pay For", Formatters.liters(reading.excessLiters))
                     DetailRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency))
                     DetailRow("Date", Formatters.shortDate(reading.date))

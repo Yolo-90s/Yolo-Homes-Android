@@ -3,10 +3,12 @@ package com.example.yolo_homes.feature.maintenance
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,10 +29,20 @@ fun MaintenanceScreen(
     isAdmin: Boolean,
     onViewHistory: () -> Unit,
     onReceiptClick: (String) -> Unit,
-    onAddMaintenance: () -> Unit
+    onAddMaintenance: () -> Unit,
+    onOpenFlatDirectory: () -> Unit = {}
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Maintenance") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Maintenance") },
+                actions = {
+                    IconButton(onClick = onOpenFlatDirectory) {
+                        Icon(Icons.Outlined.Apartment, contentDescription = "Flat Directory")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             if (isAdmin) {
                 FloatingActionButton(

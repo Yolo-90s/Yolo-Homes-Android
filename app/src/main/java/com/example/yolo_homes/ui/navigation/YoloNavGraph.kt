@@ -10,6 +10,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.yolo_homes.data.model.UserSession
+import com.example.yolo_homes.feature.flats.FlatDetailScreen
+import com.example.yolo_homes.feature.flats.FlatDirectoryScreen
 import com.example.yolo_homes.feature.home.HomeScreen
 import com.example.yolo_homes.feature.maintenance.AddMaintenanceScreen
 import com.example.yolo_homes.feature.maintenance.MaintenanceHistoryScreen
@@ -17,7 +19,6 @@ import com.example.yolo_homes.feature.maintenance.MaintenanceScreen
 import com.example.yolo_homes.feature.maintenance.ReceiptDetailScreen
 import com.example.yolo_homes.feature.profile.ProfileScreen
 import com.example.yolo_homes.feature.reports.ReportsScreen
-import com.example.yolo_homes.feature.residents.ManageResidentsScreen
 import com.example.yolo_homes.feature.settings.SettingsScreen
 import com.example.yolo_homes.feature.water.AddReadingScreen
 import com.example.yolo_homes.feature.water.FlatConsumptionScreen
@@ -55,7 +56,9 @@ fun YoloNavGraph(
                     onOpenWater = { navController.navigate(Routes.WATER) },
                     onOpenReports = { navController.navigate(Routes.REPORTS) },
                     onAddMaintenance = { navController.navigate(Routes.ADD_MAINTENANCE) },
-                    onAddReading = { navController.navigate(Routes.ADD_READING) }
+                    onAddReading = { navController.navigate(Routes.ADD_READING) },
+                    onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) },
+                    onOpenMyFlat = { navController.navigate(Routes.flatDetail(it)) }
                 )
             }
 
@@ -64,7 +67,8 @@ fun YoloNavGraph(
                     isAdmin = session.isAdmin,
                     onViewHistory = { navController.navigate(Routes.MAINTENANCE_HISTORY) },
                     onReceiptClick = { navController.navigate(Routes.receiptDetail(it)) },
-                    onAddMaintenance = { navController.navigate(Routes.ADD_MAINTENANCE) }
+                    onAddMaintenance = { navController.navigate(Routes.ADD_MAINTENANCE) },
+                    onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
                 )
             }
 
@@ -75,7 +79,25 @@ fun YoloNavGraph(
                     onReadingClick = { navController.navigate(Routes.waterBill(it)) },
                     onViewConsumption = { navController.navigate(Routes.FLAT_CONSUMPTION) },
                     onOpenWaterReport = { navController.navigate(Routes.WATER_REPORT) },
-                    onAddReading = { navController.navigate(Routes.ADD_READING) }
+                    onAddReading = { navController.navigate(Routes.ADD_READING) },
+                    onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
+                )
+            }
+
+            composable(Routes.FLAT_DIRECTORY) {
+                FlatDirectoryScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenFlat = { navController.navigate(Routes.flatDetail(it)) }
+                )
+            }
+            composable(
+                Routes.FLAT_DETAIL,
+                arguments = listOf(navArgument("flatId") { type = NavType.StringType })
+            ) {
+                FlatDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onReceiptClick = { navController.navigate(Routes.receiptDetail(it)) },
+                    onReadingClick = { navController.navigate(Routes.waterBill(it)) }
                 )
             }
 
@@ -94,11 +116,8 @@ fun YoloNavGraph(
                 SettingsScreen(
                     isAdmin = session.isAdmin,
                     onBack = { navController.popBackStack() },
-                    onManageResidents = { navController.navigate(Routes.MANAGE_RESIDENTS) }
+                    onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
                 )
-            }
-            composable(Routes.MANAGE_RESIDENTS) {
-                ManageResidentsScreen(onBack = { navController.popBackStack() })
             }
 
             // ---- Maintenance ----

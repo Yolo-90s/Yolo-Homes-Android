@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.yolo_homes.core.Formatters
 import com.example.yolo_homes.data.model.Flat
 import com.example.yolo_homes.ui.components.DetailRow
+import com.example.yolo_homes.ui.components.FreeLimitUsageBar
 import com.example.yolo_homes.ui.components.LabeledDropdown
 import com.example.yolo_homes.ui.components.PrimaryButton
 import com.example.yolo_homes.ui.components.SurfaceCard
@@ -119,7 +120,12 @@ fun AddReadingScreen(
                         androidx.compose.foundation.layout.Spacer(Modifier.padding(4.dp))
                         val rateInfo = state.settings.billingRateInfo()
                         DetailRow("Usage", Formatters.liters(draft.bill.usage))
-                        DetailRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit))
+                        FreeLimitUsageBar(
+                            label = rateInfo.limitLabel,
+                            used = draft.bill.usage,
+                            limit = rateInfo.limit,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
                         DetailRow("Billable Usage", Formatters.liters(draft.bill.excess))
                         DetailRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency))
                         DetailRow("Amount", Formatters.currency(draft.bill.amount, state.currency))

@@ -32,7 +32,7 @@ class FlatRepository @Inject constructor(
     suspend fun getFlat(id: String): Flat? =
         collection.document(id).get().await().let { if (it.exists()) it.toFlat() else null }
 
-    // ---- masterFlats: the role/email source used by Manage Residents & admin resolution ----
+    // ---- masterFlats: the role/email source used by the Flat Directory & admin resolution ----
 
     private val masterFlats get() = db.collection(FirestoreCollections.MASTER_FLATS)
 
@@ -41,11 +41,40 @@ class FlatRepository @Inject constructor(
             .map { it.sortedBy { f -> f.flatNo } }
             .catch { emit(emptyList()) }
 
-    /** Sets the resident's linked email and role on their masterFlats doc (id == flatNo). */
-    suspend fun updateResident(flatNo: String, email: String, role: String) {
-        require(flatNo.isNotBlank()) { "flatNo required" }
-        masterFlats.document(flatNo)
-            .set(mapOf("email" to email, "role" to role), SetOptions.merge())
-            .await()
+    /**
+     * Creates a brand-new unit (resident flat or staff/watchman unit) in BOTH collections —
+     * the operational `flats` doc (auto-id, what receipts/readings will reference) and the
+     * `masterFlats` doc (id == flatNo, the role/email source of truth). Neither app had any
+     * "add a flat" UI before the Flat Directory — units were seeded directly in Firestore.
+     */
+    suspend fun createFlat(flat: Flat): String {
+        require(flat.flatNo.isNotBlank()) { "flatNo required" }
+        val opsRef = collection.document()
+        val batch = db.batch()
+        batch.set(opsRef, flatData(flat))
+        batch.set(masterFlats.document(flat.flatNo), flatData(flat), SetOptions.merge())
+        batch.commit().await()
+        return opsRef.id
     }
+
+    /** Updates an existing unit's details in both collections (keeps them from drifting apart). */
+    suspend fun updateFlat(flat: Flat) {
+        require(flat.flatNo.isNotBlank()) { "flatNo required" }
+        val batch = db.batch()
+        if (flat.id.isNotBlank()) batch.set(collection.document(flat.id), flatData(flat), SetOptions.merge())
+        batch.set(masterFlats.document(flat.flatNo), flatData(flat), SetOptions.merge())
+        batch.commit().await()
+    }
+
+    private fun flatData(flat: Flat): Map<String, Any> = mapOf(
+        "flatNo" to flat.flatNo,
+        "block" to flat.block,
+        "ownerName" to flat.ownerName,
+        "ownerPhone" to flat.ownerPhone,
+        "tenantName" to flat.tenantName,
+        "tenantPhone" to flat.tenantPhone,
+        "role" to flat.role,
+        "email" to flat.email,
+        "unitType" to flat.unitType
+    )
 }

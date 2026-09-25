@@ -11,6 +11,21 @@ object FirestoreCollections {
     const val MAINTENANCE_RECEIPTS = "maintenanceReceipts"
     const val READINGS = "readings"
     const val USERS = "users"
+    const val POSTS = "posts"
+}
+
+/** [Flat.unitType] values. Anything else is treated as a resident flat. */
+object UnitTypes {
+    const val RESIDENT = "resident"
+    const val STAFF = "staff"
+}
+
+/** [Post.type] values. */
+object PostTypes {
+    const val NEWS = "news"
+    const val EVENT = "event"
+    const val NOTICE = "notice"
+    val ALL = listOf(NOTICE, NEWS, EVENT)
 }
 
 object Roles {

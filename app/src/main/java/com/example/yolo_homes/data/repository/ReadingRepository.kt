@@ -8,6 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,6 +23,12 @@ class ReadingRepository @Inject constructor(
         collection.orderBy("date", Query.Direction.DESCENDING)
             .limit(limit)
             .asFlow { it.toReading() }
+            .catch { emit(emptyList()) }
+
+    /** All readings for one flat (Flat Detail's multi-year history) — no artificial limit. */
+    fun observeReadingsForFlat(flatId: String): Flow<List<Reading>> =
+        collection.whereEqualTo("flatId", flatId).asFlow { it.toReading() }
+            .map { it.sortedByDescending { r -> r.date } }
             .catch { emit(emptyList()) }
 
     suspend fun getReadings(): List<Reading> =

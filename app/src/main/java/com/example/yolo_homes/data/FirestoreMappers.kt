@@ -3,6 +3,7 @@ package com.example.yolo_homes.data
 import com.example.yolo_homes.data.model.AppSettings
 import com.example.yolo_homes.data.model.Flat
 import com.example.yolo_homes.data.model.MaintenanceReceipt
+import com.example.yolo_homes.data.model.Post
 import com.example.yolo_homes.data.model.Reading
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
@@ -75,7 +76,9 @@ fun DocumentSnapshot.toSettings(): AppSettings {
         sendBillMessage = bool("sendBillMessage", d.sendBillMessage),
         sendReminder = bool("sendReminder", d.sendReminder),
         unit = strOrNull("unit") ?: d.unit,
-        waterSource = strOrNull("waterSource") ?: d.waterSource
+        waterSource = strOrNull("waterSource") ?: d.waterSource,
+        payInstructions = strOrNull("payInstructions") ?: d.payInstructions,
+        maintenanceMonthlyRate = if (contains("maintenanceMonthlyRate")) double("maintenanceMonthlyRate") else d.maintenanceMonthlyRate
     )
 }
 
@@ -92,7 +95,21 @@ fun DocumentSnapshot.toFlat(): Flat = Flat(
     tenantName = text("tenantName"),
     tenantPhone = text("tenantPhone"),
     role = strOrNull("role") ?: "resident",
-    email = strOrNull("email") ?: ""
+    email = strOrNull("email") ?: "",
+    unitType = strOrNull("unitType") ?: "resident"
+)
+
+/** Maps a posts doc (the Home screen's Community Board). */
+fun DocumentSnapshot.toPost(): Post = Post(
+    id = id,
+    title = str("title"),
+    body = str("body"),
+    type = strOrNull("type") ?: "notice",
+    eventDateMillis = get("eventDate")?.asMillis()?.takeIf { it > 0L },
+    pinned = bool("pinned", false),
+    createdByUid = str("createdByUid"),
+    createdByName = str("createdByName"),
+    createdAtMillis = get("createdAt").asMillis()
 )
 
 /** Maps a readings doc tolerantly (handles legacy Long vs Timestamp dates). */
