@@ -24,7 +24,7 @@ import com.example.yolo_homes.core.Formatters
 import com.example.yolo_homes.core.PdfExporter
 import com.example.yolo_homes.core.PdfRow
 import com.example.yolo_homes.ui.components.DetailRow
-import com.example.yolo_homes.ui.components.PrimaryButton
+import com.example.yolo_homes.ui.components.PdfActionsRow
 import com.example.yolo_homes.ui.components.SurfaceCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,10 +80,9 @@ fun ReceiptDetailScreen(
                     if (receipt.edited) DetailRow("Note", "Edited")
                 }
             }
-            PrimaryButton(
-                text = "Share PDF",
-                onClick = {
-                    val file = PdfExporter.export(
+            PdfActionsRow(
+                buildFile = {
+                    PdfExporter.export(
                         context = context,
                         fileName = "receipt_${receipt.id}.pdf",
                         title = "Maintenance Receipt",
@@ -97,7 +96,6 @@ fun ReceiptDetailScreen(
                             PdfRow("Amount", Formatters.currency(receipt.amount, state.currency), emphasize = true)
                         )
                     )
-                    PdfExporter.share(context, file, "Share receipt")
                 }
             )
         }

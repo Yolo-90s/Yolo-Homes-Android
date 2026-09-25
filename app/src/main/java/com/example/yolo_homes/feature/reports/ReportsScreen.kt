@@ -31,7 +31,7 @@ import com.example.yolo_homes.core.PdfExporter
 import com.example.yolo_homes.core.PdfRow
 import com.example.yolo_homes.ui.components.BarChart
 import com.example.yolo_homes.ui.components.LineChart
-import com.example.yolo_homes.ui.components.PrimaryButton
+import com.example.yolo_homes.ui.components.PdfActionsRow
 import com.example.yolo_homes.ui.components.SectionHeader
 import com.example.yolo_homes.ui.components.StatCard
 import com.example.yolo_homes.ui.components.SurfaceCard
@@ -42,7 +42,9 @@ import com.example.yolo_homes.ui.theme.LightPrimary
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
-    onBack: () -> Unit,
+    // Null when reached from the bottom nav (a top-level destination, no
+    // "back" to go to) — non-null if ever pushed on top of something else.
+    onBack: (() -> Unit)? = null,
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -53,8 +55,10 @@ fun ReportsScreen(
             TopAppBar(
                 title = { Text("Reports") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    onBack?.let { back ->
+                        IconButton(onClick = back) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )
@@ -105,10 +109,9 @@ fun ReportsScreen(
         }
 
         item {
-            PrimaryButton(
-                text = "Export Combined Report (PDF)",
-                onClick = {
-                    val file = PdfExporter.export(
+            PdfActionsRow(
+                buildFile = {
+                    PdfExporter.export(
                         context = context,
                         fileName = "yolo_homes_report.pdf",
                         title = "Yolo-Home's Report",
@@ -128,7 +131,6 @@ fun ReportsScreen(
                             )
                         }
                     )
-                    PdfExporter.share(context, file, "Share report")
                 }
             )
         }

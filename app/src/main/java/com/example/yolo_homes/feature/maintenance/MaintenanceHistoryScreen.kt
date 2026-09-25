@@ -123,7 +123,7 @@ fun MaintenanceHistoryScreen(
                     items(filtered, key = { it.id }) { r ->
                         val flat = state.flatsById[r.flatId]
                         MaintenanceReceiptCard(
-                            flatName = flat?.displayName ?: r.flatId,
+                            flatName = flat?.displayName ?: "Unknown flat",
                             owner = flat?.ownerName ?: "",
                             period = r.period,
                             paymentMethod = r.paymentMethod,

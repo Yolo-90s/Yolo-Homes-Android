@@ -52,7 +52,10 @@ fun WaterDashboardScreen(
     ) {
         item {
             PrimaryButton(
-                text = "All Flats Report  •  Table & PDF",
+                // Deliberately NOT called "Report" — the bottom-nav "Reports"
+                // tab is a different screen (combined 12-month summary).
+                // This is the flat-by-flat usage table for one month.
+                text = "All Flats — Water Usage Table",
                 onClick = onOpenReport,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -128,7 +131,7 @@ fun WaterDashboardScreen(
             items(state.readings.take(10)) { reading ->
                 val flat = state.flatsById[reading.flatId]
                 WaterReadingCard(
-                    flatName = flat?.displayName ?: reading.flatId,
+                    flatName = flat?.displayName ?: "Unknown flat",
                     owner = flat?.occupantName ?: "",
                     usageLiters = reading.usageLiters,
                     excessLiters = reading.excessLiters,

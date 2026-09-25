@@ -43,8 +43,8 @@ import com.example.yolo_homes.ui.components.SurfaceCard
 
 private data class BillingMethodOption(val value: String, val label: String)
 private val BILLING_METHOD_OPTIONS = listOf(
-    BillingMethodOption("flat", "Flat Rate (per liter)"),
-    BillingMethodOption("tiered", "Tiered (Free Allowance + Excess Rate)")
+    BillingMethodOption("flat", "Free starting amount, then pay per liter"),
+    BillingMethodOption("tiered", "Free amount every month, then pay per liter")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +68,7 @@ fun SettingsScreen(
     var waterSource by remember(settings) { mutableStateOf(settings.waterSource) }
     var sendReminder by remember(settings) { mutableStateOf(settings.sendReminder) }
     var sendBillMessage by remember(settings) { mutableStateOf(settings.sendBillMessage) }
+    var payInstructions by remember(settings) { mutableStateOf(settings.payInstructions) }
 
     LaunchedEffect(saveState) {
         if (saveState is SettingsSaveState.Saved) {
@@ -154,7 +155,7 @@ fun SettingsScreen(
                 )
             } else {
                 field("Rate per Liter (${currency.ifBlank { "₹" }})", rate, isAdmin, KeyboardType.Decimal) { rate = it }
-                field("Free / Exclude Limit (L)", freeLiters, isAdmin, KeyboardType.Decimal) { freeLiters = it }
+                field("Free water limit (L)", freeLiters, isAdmin, KeyboardType.Decimal) { freeLiters = it }
                 Text(
                     "Water meters ship showing ~100+ L. The first ${freeLiters.ifBlank { "200" }} L are excluded — " +
                         "billing counts only liters above this baseline, charged at the rate per liter.",
@@ -165,6 +166,23 @@ fun SettingsScreen(
             field("Currency Symbol", currency, isAdmin, KeyboardType.Text) { currency = it }
             field("Reading Frequency", readingFrequency, isAdmin, KeyboardType.Text) { readingFrequency = it }
             field("Water Source", waterSource, isAdmin, KeyboardType.Text) { waterSource = it }
+
+            SectionHeader("Payments")
+            Text(
+                "The app has no in-app payment flow — residents see this on the Maintenance " +
+                    "screen so they know how to actually pay.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = payInstructions,
+                onValueChange = { payInstructions = it },
+                label = { Text("How residents should pay") },
+                placeholder = { Text("e.g. Pay via UPI: office@upi, or contact the office") },
+                enabled = isAdmin,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
 
             SectionHeader("Notifications")
             toggle("Send Reminders", sendReminder, isAdmin) { sendReminder = it }
@@ -190,7 +208,8 @@ fun SettingsScreen(
                                 readingFrequency = readingFrequency,
                                 waterSource = waterSource,
                                 sendReminder = sendReminder,
-                                sendBillMessage = sendBillMessage
+                                sendBillMessage = sendBillMessage,
+                                payInstructions = payInstructions
                             )
                         )
                     }

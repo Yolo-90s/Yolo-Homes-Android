@@ -1,10 +1,15 @@
 package com.example.yolo_homes.core
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
@@ -189,6 +194,35 @@ object PdfExporter {
         FileOutputStream(file).use { doc.writeTo(it) }
         doc.close()
         return file
+    }
+
+    /**
+     * Saves an already-generated PDF into the device's real Downloads
+     * folder (visible in Files/Downloads, not just a cache-file share) via
+     * `MediaStore.Downloads` — no permission needed on API 29+ (scoped
+     * storage). Returns the saved file's [Uri], or `null` on failure.
+     *
+     * API 24-28 (pre-scoped-storage) isn't implemented here — writing to
+     * the public Downloads folder there needs the runtime-requested
+     * `WRITE_EXTERNAL_STORAGE` permission, which would need UI wiring on
+     * every call site for an increasingly rare OS version. Callers should
+     * fall back to [share] when this returns `null`.
+     */
+    fun saveToDownloads(context: Context, file: File, mimeType: String = "application/pdf"): Uri? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        }
+        return runCatching {
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
+            resolver.openOutputStream(uri)?.use { out ->
+                file.inputStream().use { it.copyTo(out) }
+            }
+            uri
+        }.getOrNull()
     }
 
     fun share(context: Context, file: File, label: String = "Share") {

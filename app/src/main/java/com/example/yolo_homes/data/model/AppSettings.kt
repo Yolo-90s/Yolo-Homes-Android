@@ -31,7 +31,12 @@ data class AppSettings(
     val sendBillMessage: Boolean = false,
     val sendReminder: Boolean = false,
     val unit: String = "Liters",
-    val waterSource: String = ""
+    val waterSource: String = "",
+    // Admin-written plain-text instructions shown to residents on the
+    // Maintenance screen — the app has no in-app payment flow (receipts
+    // are logged after the fact), so this is how residents learn how to
+    // actually pay, e.g. "Pay via UPI: office@upi, or contact the office."
+    val payInstructions: String = ""
 ) {
     /**
      * Computes usage / billable / amount for a meter reading, per [billingMethod].
@@ -73,7 +78,7 @@ data class AppSettings(
             tiered = tiered,
             rate = if (tiered) tieredRatePerLiter else ratePerExcessLiter,
             limit = if (tiered) freeLitersMonthly else freeLiters,
-            limitLabel = if (tiered) "Free Allowance (Monthly)" else "Exclude Limit (≤)"
+            limitLabel = if (tiered) "Free amount each month" else "Free water limit"
         )
     }
 }

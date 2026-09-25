@@ -45,7 +45,9 @@ import com.example.yolo_homes.ui.components.SurfaceCard
 fun ProfileScreen(
     session: UserSession,
     appVersion: String,
-    onBack: () -> Unit,
+    // Null when reached from the bottom nav (a top-level destination, no
+    // "back" to go to) — non-null if ever pushed on top of something else.
+    onBack: (() -> Unit)? = null,
     onLogout: () -> Unit,
     themeViewModel: ThemeViewModel = hiltViewModel()
 ) {
@@ -57,8 +59,10 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("Profile") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    onBack?.let { back ->
+                        IconButton(onClick = back) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )

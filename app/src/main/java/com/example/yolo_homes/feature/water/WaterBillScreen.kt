@@ -25,7 +25,7 @@ import com.example.yolo_homes.core.Formatters
 import com.example.yolo_homes.core.PdfExporter
 import com.example.yolo_homes.core.PdfRow
 import com.example.yolo_homes.ui.components.DetailRow
-import com.example.yolo_homes.ui.components.PrimaryButton
+import com.example.yolo_homes.ui.components.PdfActionsRow
 import com.example.yolo_homes.ui.components.SurfaceCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,15 +81,14 @@ fun WaterBillScreen(
                     DetailRow("Current Reading", Formatters.liters(reading.currentReading))
                     DetailRow("Usage", Formatters.liters(reading.usageLiters))
                     DetailRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit))
-                    DetailRow("Billable Usage", Formatters.liters(reading.excessLiters))
+                    DetailRow("Amount You Pay For", Formatters.liters(reading.excessLiters))
                     DetailRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency))
                     DetailRow("Date", Formatters.shortDate(reading.date))
                 }
             }
-            PrimaryButton(
-                text = "Share PDF",
-                onClick = {
-                    val file = PdfExporter.export(
+            PdfActionsRow(
+                buildFile = {
+                    PdfExporter.export(
                         context = context,
                         fileName = "water_bill_${reading.id}.pdf",
                         title = "Water Bill",
@@ -101,12 +100,11 @@ fun WaterBillScreen(
                             PdfRow("Current Reading", Formatters.liters(reading.currentReading)),
                             PdfRow("Usage", Formatters.liters(reading.usageLiters)),
                             PdfRow(rateInfo.limitLabel, Formatters.liters(rateInfo.limit)),
-                            PdfRow("Billable Usage", Formatters.liters(reading.excessLiters)),
+                            PdfRow("Amount You Pay For", Formatters.liters(reading.excessLiters)),
                             PdfRow("Rate / Liter", Formatters.currencyPrecise(rateInfo.rate, state.currency)),
                             PdfRow("Amount", Formatters.currency(reading.amount, state.currency), emphasize = true)
                         )
                     )
-                    PdfExporter.share(context, file, "Share water bill")
                 }
             )
         }

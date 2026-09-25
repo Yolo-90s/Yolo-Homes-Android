@@ -90,7 +90,7 @@ fun FlatConsumptionScreen(
                 EmptyState(
                     icon = Icons.Outlined.WaterDrop,
                     title = "No Flats Found",
-                    message = "Add flats to masterFlats to see consumption here."
+                    message = "No flats have been added yet. Ask your admin to add flats in Settings."
                 )
             } else {
                 LazyColumn(

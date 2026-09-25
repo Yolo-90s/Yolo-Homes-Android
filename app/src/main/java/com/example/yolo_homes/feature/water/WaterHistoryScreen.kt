@@ -107,7 +107,7 @@ fun WaterHistoryScreen(
                     items(filtered, key = { it.id }) { reading ->
                         val flat = state.flatsById[reading.flatId]
                         WaterReadingCard(
-                            flatName = flat?.displayName ?: reading.flatId,
+                            flatName = flat?.displayName ?: "Unknown flat",
                             owner = flat?.occupantName ?: "",
                             usageLiters = reading.usageLiters,
                             excessLiters = reading.excessLiters,

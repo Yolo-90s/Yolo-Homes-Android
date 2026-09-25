@@ -53,7 +53,10 @@ private fun YoloHomesRoot(
     // Hold the boot animation on screen long enough to play through, even if auth resolves instantly.
     var bootDone by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2700)
+        // Was 2700ms — a near-3-second forced wait before a signed-in user
+        // reaches real content. Keep the boot animation, just don't hold
+        // the app hostage to it.
+        kotlinx.coroutines.delay(1200)
         bootDone = true
     }
     val showSplash = authState is AuthUiState.Loading || !bootDone
