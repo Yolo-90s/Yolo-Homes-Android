@@ -37,6 +37,32 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!--
+            Firebase App Distribution SDK ships AppCompatActivity subclasses
+            (InstallActivity, etc.) that crash when they inherit our root
+            Theme.YoloHomes (a framework android:Theme.Material, not an
+            AppCompat descendant). Override the theme on each one via
+            tools:replace so AppCompatDelegate.onPostCreate finds the
+            colorPrimary / colorAccent attributes it expects. tools:node="merge"
+            lets us add android:theme without redeclaring the activity's
+            label / exported flags (the SDK's manifest entry stays intact).
+        -->
+        <activity
+            android:name="com.google.firebase.appdistribution.impl.InstallActivity"
+            android:theme="@style/Theme.YoloHomes.AppCompat"
+            tools:node="merge"
+            tools:replace="android:theme" />
+        <activity
+            android:name="com.google.firebase.appdistribution.impl.TaskCancelAndUpdateDialogActivity"
+            android:theme="@style/Theme.YoloHomes.AppCompat"
+            tools:node="merge"
+            tools:replace="android:theme" />
+        <activity
+            android:name="com.google.firebase.appdistribution.impl.SignInResultActivity"
+            android:theme="@style/Theme.YoloHomes.AppCompat"
+            tools:node="merge"
+            tools:replace="android:theme" />
     </application>
 
 </manifest>

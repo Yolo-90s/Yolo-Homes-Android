@@ -36,8 +36,8 @@ android {
         applicationId = "com.example.apartment_manager"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -93,6 +93,10 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
+    // AppCompat is otherwise unused (the app is Compose + a plain framework
+    // Material theme) — pulled in only to host Firebase App Distribution's
+    // AppCompatActivity-based SDK screens (see themes.xml / AndroidManifest.xml).
+    implementation(libs.androidx.appcompat)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -114,6 +118,13 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
+    // App Distribution in-app update SDK. NOT part of the Firebase BoM — ships
+    // its own beta-labelled but production-stable versioning (same version
+    // already proven in the sibling YoloAIO app, same Firebase project).
+    // Powers the "download + install" prompt when a newer release APK is
+    // available; distribution itself is done via the `firebase` CLI directly
+    // against the built APK, not a Gradle plugin.
+    implementation("com.google.firebase:firebase-appdistribution:16.0.0-beta14")
 
     // Google Sign-In (Credential Manager)
     implementation(libs.androidx.credentials)

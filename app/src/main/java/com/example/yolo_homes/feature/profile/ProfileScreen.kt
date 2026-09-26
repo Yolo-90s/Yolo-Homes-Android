@@ -1,5 +1,8 @@
 package com.example.yolo_homes.feature.profile
 
+import android.app.Activity
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,17 +32,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.yolo_homes.core.Formatters
+import com.example.yolo_homes.data.AppUpdateChecker
 import com.example.yolo_homes.data.model.UserSession
 import com.example.yolo_homes.ui.components.InitialsAvatar
 import com.example.yolo_homes.ui.components.SectionHeader
 import com.example.yolo_homes.ui.components.SurfaceCard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +64,10 @@ fun ProfileScreen(
 ) {
     val darkPref by themeViewModel.darkMode.collectAsStateWithLifecycle()
     val isDark = darkPref ?: isSystemInDarkTheme()
+    var checkingForUpdate by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
+    val activity = remember(ctx) { ctx as? Activity }
+    val updateScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -129,6 +144,35 @@ fun ProfileScreen(
                     "Version $appVersion",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        SurfaceCard(
+            Modifier.clickable(enabled = !checkingForUpdate) {
+                val act = activity ?: return@clickable
+                checkingForUpdate = true
+                updateScope.launch {
+                    val result = AppUpdateChecker.forceCheck(act)
+                    checkingForUpdate = false
+                    val msg = when (result) {
+                        is AppUpdateChecker.Status.UpToDate -> "You're on the latest version."
+                        is AppUpdateChecker.Status.UpdatePending ->
+                            "Update v${result.versionName} available — follow the prompt to install."
+                        is AppUpdateChecker.Status.Failed -> "Couldn't check for updates: ${result.message}"
+                    }
+                    Toast.makeText(act, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.SystemUpdate, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    if (checkingForUpdate) "Checking…" else "Check for updates",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp)
                 )
             }
         }

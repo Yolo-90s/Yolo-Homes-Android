@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.yolo_homes.data.AppUpdateChecker
 import com.example.yolo_homes.feature.auth.AuthUiState
 import com.example.yolo_homes.feature.auth.AuthViewModel
 import com.example.yolo_homes.feature.auth.LoginScreen
@@ -37,6 +38,10 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Silent App Distribution update check — fires at most once per 24 h. If a newer
+        // release APK is available, the SDK downloads it automatically and shows its own
+        // "Update ready" dialog with the install prompt.
+        AppUpdateChecker.maybeCheckOnLaunch(this)
         setContent { YoloHomesRoot() }
     }
 }
