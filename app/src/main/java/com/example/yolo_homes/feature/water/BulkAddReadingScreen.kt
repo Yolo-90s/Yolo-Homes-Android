@@ -14,15 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -97,12 +96,30 @@ fun BulkAddReadingScreen(
         }
     }
 
+    fun readCsv(uri: Uri) {
+        scope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: error("Couldn't open that file")
+                }
+            }.onSuccess { text ->
+                viewModel.onCsvTextParsed(text)
+            }.onFailure {
+                viewModel.onProcessingFailed(it.message ?: "Couldn't read that file.")
+            }
+        }
+    }
+
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) pendingCameraUri?.let { recognize(it) }
     }
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { recognize(it) } }
+    val csvLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { readCsv(it) } }
 
     LaunchedEffect(submitState) {
         if (submitState is BulkSubmitState.Success) {
@@ -122,11 +139,12 @@ fun BulkAddReadingScreen(
             )
         }
     ) { padding ->
-        when (val s = stage) {
+        when (stage) {
             is BulkStage.Pick -> PickStage(
                 modifier = Modifier.padding(padding),
                 targetPeriod = state.targetPeriod,
                 error = error,
+                onUploadCsv = { csvLauncher.launch("text/*") },
                 onTakePhoto = {
                     val file = File(context.cacheDir, "bulk_reading_${System.currentTimeMillis()}.jpg")
                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -162,6 +180,7 @@ fun BulkAddReadingScreen(
                 error = error,
                 submitting = submitState is BulkSubmitState.Submitting,
                 onCurrentReadingChanged = { idx, text -> viewModel.updateCurrentReadingText(idx, text) },
+                onPreviousReadingChanged = { idx, text -> viewModel.updatePreviousReadingText(idx, text) },
                 onFlatChanged = { idx, flatId -> viewModel.onFlatChanged(idx, flatId) },
                 onRemoveRow = { idx -> viewModel.removeRow(idx) },
                 onSubmit = { viewModel.submitAll(onDone = {}) }
@@ -177,6 +196,7 @@ private fun PickStage(
     modifier: Modifier,
     targetPeriod: String,
     error: String?,
+    onUploadCsv: () -> Unit,
     onTakePhoto: () -> Unit,
     onChooseFromGallery: () -> Unit
 ) {
@@ -187,9 +207,20 @@ private fun PickStage(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "Upload one photo of your handwritten reading list for ${Formatters.monthLabel(targetPeriod)}. " +
-                "The app will read it and show you an editable table — nothing is saved until you submit.",
+            "Add every flat's reading for ${Formatters.monthLabel(targetPeriod)} at once — upload a CSV export " +
+                "of your list (most reliable), or a photo of it (handwriting recognition is best-effort; you'll " +
+                "be able to fix anything it gets wrong before submitting).",
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedButton(onClick = onUploadCsv, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.UploadFile, contentDescription = null)
+            Text("  Upload CSV")
+        }
+        Text(
+            "Columns in any order named \"Flat\", \"Total\"/\"Current\", \"Old\"/\"Previous\" — or just the " +
+                "notebook's own order (M.No, Flat.No, Total, Old, New).",
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         OutlinedButton(onClick = onTakePhoto, modifier = Modifier.fillMaxWidth()) {
@@ -210,8 +241,9 @@ private val STATUS_LABEL = mapOf(
     RowStatus.OK to "Ready",
     RowStatus.NO_FLAT to "Pick a flat",
     RowStatus.DUPLICATE to "Duplicate in this batch",
-    RowStatus.NO_READING to "No reading detected",
-    RowStatus.BELOW_PREVIOUS to "Reading lower than previous"
+    RowStatus.NO_PREVIOUS to "No previous reading",
+    RowStatus.NO_CURRENT to "No current reading",
+    RowStatus.BELOW_PREVIOUS to "Current is lower than previous"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -226,6 +258,7 @@ private fun ReviewStage(
     error: String?,
     submitting: Boolean,
     onCurrentReadingChanged: (Int, String) -> Unit,
+    onPreviousReadingChanged: (Int, String) -> Unit,
     onFlatChanged: (Int, String) -> Unit,
     onRemoveRow: (Int) -> Unit,
     onSubmit: () -> Unit
@@ -252,7 +285,7 @@ private fun ReviewStage(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "OCR read: \"${r.row.rawLine}\"",
+                                "Source: \"${r.row.rawLine}\"",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
@@ -268,16 +301,29 @@ private fun ReviewStage(
                             optionLabel = { "${it.displayName} — ${it.occupantName}" },
                             onSelect = { onFlatChanged(r.index, it.id) }
                         )
-                        OutlinedTextField(
-                            value = r.row.currentReadingText,
-                            onValueChange = { onCurrentReadingChanged(r.index, it.filter { c -> c.isDigit() || c == '.' }) },
-                            label = { Text("Current Reading") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier
+                        Row(
+                            Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        )
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = r.row.previousReadingText,
+                                onValueChange = { onPreviousReadingChanged(r.index, it.filter { c -> c.isDigit() || c == '.' }) },
+                                label = { Text("Previous") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = r.row.currentReadingText,
+                                onValueChange = { onCurrentReadingChanged(r.index, it.filter { c -> c.isDigit() || c == '.' }) },
+                                label = { Text("Current") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -286,8 +332,7 @@ private fun ReviewStage(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Previous ${Formatters.liters(r.row.previousReading)}" +
-                                    (r.bill?.let { " · Usage ${Formatters.liters(it.usage)} · ${Formatters.currency(it.amount, currency)}" } ?: ""),
+                                r.bill?.let { "Usage ${Formatters.liters(it.usage)} · ${Formatters.currency(it.amount, currency)}" } ?: "—",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

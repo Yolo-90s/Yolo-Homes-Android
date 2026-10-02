@@ -25,16 +25,17 @@ import javax.inject.Inject
 data class BulkRow(
     val rawLine: String,
     val flatId: String = "",
-    val previousReading: Double = 0.0,
+    val previousReadingText: String = "",
     val currentReadingText: String = ""
 )
 
-enum class RowStatus { OK, NO_FLAT, DUPLICATE, NO_READING, BELOW_PREVIOUS }
+enum class RowStatus { OK, NO_FLAT, DUPLICATE, NO_PREVIOUS, NO_CURRENT, BELOW_PREVIOUS }
 
 data class ComputedRow(
     val row: BulkRow,
     val index: Int,
     val current: Double?,
+    val previous: Double?,
     val bill: WaterBill?,
     val status: RowStatus
 )
@@ -104,31 +105,47 @@ class BulkReadingViewModel @Inject constructor(
         _stage.value = BulkStage.Pick
     }
 
-    /** Called once ML Kit returns recognized text — builds the editable review rows. */
+    /** Called once ML Kit returns recognized text from a photo. */
     fun onTextRecognized(text: String) {
         viewModelScope.launch {
-            val flats = uiState.value.flats
-            val parsed = parseOcrLines(text, flats)
-            val rows = parsed.map { p ->
-                val previous = p.matchedFlat?.let {
-                    readingRepository.getLatestForFlat(it.id)?.currentReading ?: 0.0
-                } ?: 0.0
-                BulkRow(
-                    rawLine = p.rawLine,
-                    flatId = p.matchedFlat?.id ?: "",
-                    previousReading = previous,
-                    currentReadingText = p.parsedReading?.toString() ?: ""
-                )
-            }
-            _stage.value = BulkStage.Review(rows)
+            _stage.value = BulkStage.Review(buildRows(parseOcrLines(text, uiState.value.flats)))
         }
     }
 
+    /** Called once a CSV file's contents have been read. */
+    fun onCsvTextParsed(text: String) {
+        viewModelScope.launch {
+            _stage.value = BulkStage.Review(buildRows(parseCsvRows(text, uiState.value.flats)))
+        }
+    }
+
+    // Shared by both input paths: if the source (OCR line or CSV row) already carried a
+    // previous/"Old" reading, use it directly — it's the admin's own written record — otherwise
+    // fall back to the last reading on file.
+    private suspend fun buildRows(parsed: List<ParsedLine>): List<BulkRow> = parsed.map { p ->
+        val previous = p.parsedPrevious
+            ?: p.matchedFlat?.let { readingRepository.getLatestForFlat(it.id)?.currentReading }
+        BulkRow(
+            rawLine = p.rawLine,
+            flatId = p.matchedFlat?.id ?: "",
+            previousReadingText = previous?.toString() ?: "",
+            currentReadingText = p.parsedCurrent?.toString() ?: ""
+        )
+    }
+
     fun updateCurrentReadingText(index: Int, text: String) {
+        mutateRow(index) { it.copy(currentReadingText = text) }
+    }
+
+    fun updatePreviousReadingText(index: Int, text: String) {
+        mutateRow(index) { it.copy(previousReadingText = text) }
+    }
+
+    private fun mutateRow(index: Int, transform: (BulkRow) -> BulkRow) {
         val stageNow = _stage.value
         if (stageNow is BulkStage.Review) {
             _stage.value = stageNow.copy(
-                rows = stageNow.rows.mapIndexed { i, r -> if (i == index) r.copy(currentReadingText = text) else r }
+                rows = stageNow.rows.mapIndexed { i, r -> if (i == index) transform(r) else r }
             )
         }
     }
@@ -136,16 +153,9 @@ class BulkReadingViewModel @Inject constructor(
     fun onFlatChanged(index: Int, flatId: String) {
         viewModelScope.launch {
             val previous = if (flatId.isNotBlank()) {
-                readingRepository.getLatestForFlat(flatId)?.currentReading ?: 0.0
-            } else 0.0
-            val stageNow = _stage.value
-            if (stageNow is BulkStage.Review) {
-                _stage.value = stageNow.copy(
-                    rows = stageNow.rows.mapIndexed { i, r ->
-                        if (i == index) r.copy(flatId = flatId, previousReading = previous) else r
-                    }
-                )
-            }
+                readingRepository.getLatestForFlat(flatId)?.currentReading
+            } else null
+            mutateRow(index) { it.copy(flatId = flatId, previousReadingText = previous?.toString() ?: "") }
         }
     }
 
@@ -163,16 +173,20 @@ class BulkReadingViewModel @Inject constructor(
         val seenFlatIds = mutableSetOf<String>()
         return rows.mapIndexed { index, row ->
             val currentReading = row.currentReadingText.toDoubleOrNull()
-            val bill = currentReading?.let { settings.computeBill(row.previousReading, it) }
+            val previousReading = row.previousReadingText.toDoubleOrNull()
+            val bill = if (currentReading != null && previousReading != null) {
+                settings.computeBill(previousReading, currentReading)
+            } else null
             val isDuplicate = row.flatId.isNotBlank() && !seenFlatIds.add(row.flatId)
             val status = when {
                 row.flatId.isBlank() -> RowStatus.NO_FLAT
                 isDuplicate -> RowStatus.DUPLICATE
-                currentReading == null -> RowStatus.NO_READING
-                currentReading < row.previousReading -> RowStatus.BELOW_PREVIOUS
+                previousReading == null -> RowStatus.NO_PREVIOUS
+                currentReading == null -> RowStatus.NO_CURRENT
+                currentReading < previousReading -> RowStatus.BELOW_PREVIOUS
                 else -> RowStatus.OK
             }
-            ComputedRow(row, index, currentReading, bill, status)
+            ComputedRow(row, index, currentReading, previousReading, bill, status)
         }
     }
 
@@ -184,7 +198,7 @@ class BulkReadingViewModel @Inject constructor(
             val readings = valid.map { r ->
                 Reading(
                     flatId = r.row.flatId,
-                    previousReading = r.row.previousReading,
+                    previousReading = r.previous ?: 0.0,
                     currentReading = r.current ?: 0.0,
                     usageLiters = r.bill?.usage ?: 0.0,
                     excessLiters = r.bill?.excess ?: 0.0,

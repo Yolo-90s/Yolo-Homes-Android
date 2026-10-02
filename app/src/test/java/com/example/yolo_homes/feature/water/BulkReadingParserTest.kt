@@ -14,38 +14,34 @@ class BulkReadingParserTest {
     )
 
     @Test
-    fun `matches flat and reading separated by a dash`() {
-        val result = parseOcrLines("101 - 23456", flats)
+    fun `extracts both current and previous from the real notebook's column order`() {
+        // M.No, Flat.No, Total Reading, Old Reading, New
+        val result = parseOcrLines("01973 101 43621 33362 10259", flats)
         assertEquals("101", result[0].matchedFlat?.flatNo)
-        assertEquals(23456.0, result[0].parsedReading)
+        assertEquals(43621.0, result[0].parsedCurrent)
+        assertEquals(33362.0, result[0].parsedPrevious)
     }
 
     @Test
     fun `matches flat case-insensitively`() {
-        val result = parseOcrLines("G01: 9055", flats)
+        val result = parseOcrLines("G01: 9055 8000", flats)
         assertEquals("G01", result[0].matchedFlat?.flatNo)
-        assertEquals(9055.0, result[0].parsedReading)
+        assertEquals(9055.0, result[0].parsedCurrent)
+        assertEquals(8000.0, result[0].parsedPrevious)
     }
 
     @Test
-    fun `ignores a trailing unit token after the reading`() {
-        val result = parseOcrLines("104   19928 L", flats)
-        assertEquals("104", result[0].matchedFlat?.flatNo)
-        assertEquals(19928.0, result[0].parsedReading)
+    fun `a simple flat-plus-one-number line leaves previous null`() {
+        val result = parseOcrLines("101 - 23456", flats)
+        assertEquals(23456.0, result[0].parsedCurrent)
+        assertNull(result[0].parsedPrevious)
     }
 
     @Test
     fun `a noise line with no numbers matches nothing`() {
         val result = parseOcrLines("blah blah no numbers here", flats)
         assertNull(result[0].matchedFlat)
-        assertNull(result[0].parsedReading)
-    }
-
-    @Test
-    fun `still extracts the reading even when the flat is not in the building list`() {
-        val result = parseOcrLines("502, 12000", flats)
-        assertNull(result[0].matchedFlat)
-        assertEquals(12000.0, result[0].parsedReading)
+        assertNull(result[0].parsedCurrent)
     }
 
     @Test
@@ -53,5 +49,25 @@ class BulkReadingParserTest {
         val text = "101 - 23456\n\nG01: 9055\n"
         val result = parseOcrLines(text, flats)
         assertEquals(2, result.size)
+    }
+
+    @Test
+    fun `csv with a recognizable header uses the named columns`() {
+        val csv = "M.No,Flat No,Total Reading,Old Reading,New\n01973,101,43621,33362,10259"
+        val result = parseCsvRows(csv, flats)
+        assertEquals(1, result.size)
+        assertEquals("101", result[0].matchedFlat?.flatNo)
+        assertEquals(43621.0, result[0].parsedCurrent)
+        assertEquals(33362.0, result[0].parsedPrevious)
+    }
+
+    @Test
+    fun `csv with no header falls back to the notebook's own column order`() {
+        val csv = "01973,101,43621,33362,10259\n05721,201,56885,46021,10864"
+        val result = parseCsvRows(csv, flats)
+        assertEquals(2, result.size)
+        assertEquals("101", result[0].matchedFlat?.flatNo)
+        assertEquals(43621.0, result[0].parsedCurrent)
+        assertEquals(33362.0, result[0].parsedPrevious)
     }
 }
