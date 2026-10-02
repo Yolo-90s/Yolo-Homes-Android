@@ -21,6 +21,7 @@ import com.example.yolo_homes.feature.profile.ProfileScreen
 import com.example.yolo_homes.feature.reports.ReportsScreen
 import com.example.yolo_homes.feature.settings.SettingsScreen
 import com.example.yolo_homes.feature.water.AddReadingScreen
+import com.example.yolo_homes.feature.water.BulkAddReadingScreen
 import com.example.yolo_homes.feature.water.FlatConsumptionScreen
 import com.example.yolo_homes.feature.water.WaterBillScreen
 import com.example.yolo_homes.feature.water.WaterHistoryScreen
@@ -97,6 +98,7 @@ fun YoloNavGraph(
                         onViewConsumption = { navController.navigate(Routes.FLAT_CONSUMPTION) },
                         onOpenWaterReport = { navController.navigate(Routes.WATER_REPORT) },
                         onAddReading = { navController.navigate(Routes.ADD_READING) },
+                        onBulkAddReading = { navController.navigate(Routes.BULK_ADD_READING) },
                         onOpenFlatDirectory = { navController.navigate(Routes.FLAT_DIRECTORY) }
                     )
                 }
@@ -180,6 +182,13 @@ fun YoloNavGraph(
                     AccessRestrictedScreen(title = "Add Reading", onBack = { navController.popBackStack() })
                 } else {
                     AddReadingScreen(onBack = { navController.popBackStack() }, onSaved = { navController.popBackStack() })
+                }
+            }
+            composable(Routes.BULK_ADD_READING) {
+                if (!session.isAdmin) {
+                    AccessRestrictedScreen(title = "Bulk Upload Readings", onBack = { navController.popBackStack() })
+                } else {
+                    BulkAddReadingScreen(onBack = { navController.popBackStack() }, onSaved = { navController.popBackStack() })
                 }
             }
             composable(Routes.READING_HISTORY) {

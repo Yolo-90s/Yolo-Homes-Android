@@ -63,6 +63,28 @@ class ReadingRepository @Inject constructor(
         collection.add(data).await()
     }
 
+    /** Bulk version of [addReading] — one atomic write for every row a Bulk Upload review submits. */
+    suspend fun addReadingsBatch(readings: List<Reading>) {
+        val batch = db.batch()
+        val sharedDate = Formatters.lastDayOfPreviousMonthMillis()
+        readings.forEach { reading ->
+            val data = mapOf(
+                "flatId" to reading.flatId,
+                "previousReading" to reading.previousReading,
+                "currentReading" to reading.currentReading,
+                "usageLiters" to reading.usageLiters,
+                "excessLiters" to reading.excessLiters,
+                "amount" to reading.amount,
+                "date" to sharedDate,
+                "capturedBy" to reading.capturedBy,
+                "edited" to false,
+                "hasImage" to reading.hasImage
+            )
+            batch.set(collection.document(), data)
+        }
+        batch.commit().await()
+    }
+
     suspend fun updateReading(reading: Reading) {
         require(reading.id.isNotBlank()) { "Reading id required for update" }
         val data = mapOf(

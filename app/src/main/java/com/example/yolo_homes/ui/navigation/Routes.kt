@@ -26,6 +26,7 @@ object Routes {
     fun receiptDetail(id: String) = "maintenance/receipt/$id"
 
     const val ADD_READING = "water/add"
+    const val BULK_ADD_READING = "water/bulk-add"
     const val READING_HISTORY = "water/history"
     const val FLAT_CONSUMPTION = "water/consumption"
     const val WATER_REPORT = "water/report"

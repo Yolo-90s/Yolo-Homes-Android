@@ -36,8 +36,8 @@ android {
         applicationId = "com.example.apartment_manager"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.2.1"
+        versionCode = 5
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -97,6 +97,8 @@ dependencies {
     // Material theme) — pulled in only to host Firebase App Distribution's
     // AppCompatActivity-based SDK screens (see themes.xml / AndroidManifest.xml).
     implementation(libs.androidx.appcompat)
+    // On-device OCR (no network call, free) for Bulk Upload's photographed reading list.
+    implementation(libs.mlkit.text.recognition)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
