@@ -25,6 +25,24 @@ object Formatters {
     fun periodKey(millis: Long): String =
         periodKey(if (millis > 0L) Date(millis) else Date(0))
 
+    /**
+     * Epoch millis for noon on the last day of the month before [date] (default now). Water
+     * readings are physically taken at month-end but entered a day or two into the next
+     * month — this is the date that should actually be recorded, not the entry date, so it's
+     * classified into the right month everywhere [periodKey] is used.
+     */
+    fun lastDayOfPreviousMonthMillis(date: Date = Date()): Long {
+        val cal = Calendar.getInstance()
+        cal.time = date
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.add(Calendar.DAY_OF_MONTH, -1)
+        cal.set(Calendar.HOUR_OF_DAY, 12)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
     fun monthLabel(periodKey: String): String {
         return try {
             val parsed = SimpleDateFormat("yyyy-MM", Locale.getDefault()).parse(periodKey)

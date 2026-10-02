@@ -52,6 +52,17 @@ fun AddReadingScreen(
     var selectedFlat by remember { mutableStateOf<Flat?>(null) }
     var currentText by remember { mutableStateOf("") }
 
+    // Readings always get recorded against the previous month (see
+    // ReadingRepository.addReading) — hide any flat that's already been reported for that
+    // period so it can't be double-added.
+    val targetPeriod = remember { Formatters.periodKey(Formatters.lastDayOfPreviousMonthMillis()) }
+    val reportedFlatIds = remember(state.readings) {
+        state.readings.filter { Formatters.periodKey(it.date) == targetPeriod }.map { it.flatId }.toSet()
+    }
+    val availableFlats = remember(state.flats, reportedFlatIds) {
+        state.flats.filterNot { reportedFlatIds.contains(it.id) }
+    }
+
     LaunchedEffect(saveState) {
         if (saveState is WaterSaveState.Success) {
             viewModel.resetSaveState()
@@ -80,9 +91,15 @@ fun AddReadingScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Text(
+                "Recording for ${Formatters.monthLabel(targetPeriod)} — flats already reported for this month are hidden below.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             LabeledDropdown(
                 label = "Select Flat",
-                options = state.flats,
+                options = availableFlats,
                 selected = selectedFlat,
                 optionLabel = { "${it.displayName} — ${it.occupantName}" },
                 onSelect = {

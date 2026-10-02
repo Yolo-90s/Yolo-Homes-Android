@@ -1,6 +1,7 @@
 package com.example.yolo_homes.data.repository
 
 import com.example.yolo_homes.core.FirestoreCollections
+import com.example.yolo_homes.core.Formatters
 import com.example.yolo_homes.data.asFlow
 import com.example.yolo_homes.data.model.Reading
 import com.example.yolo_homes.data.toReading
@@ -52,7 +53,9 @@ class ReadingRepository @Inject constructor(
             "usageLiters" to reading.usageLiters,
             "excessLiters" to reading.excessLiters,
             "amount" to reading.amount,
-            "date" to System.currentTimeMillis(),
+            // Readings are physically taken at month-end but entered a day or two into the
+            // next month — record the period the reading actually belongs to, not today's date.
+            "date" to Formatters.lastDayOfPreviousMonthMillis(),
             "capturedBy" to reading.capturedBy,
             "edited" to false,
             "hasImage" to reading.hasImage
